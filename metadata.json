@@ -1,0 +1,6 @@
+{
+  "name": "THIKANA TECH - AI Stock Metadata Generator",
+  "description": "Professional stock media metadata generator with batch processing, multi-API key rotation, and microstock CSV export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
