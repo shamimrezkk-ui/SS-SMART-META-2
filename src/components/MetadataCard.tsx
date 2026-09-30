@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { ImageItem, PlatformType } from '../types';
 import { buildCsvString, downloadCsvFile } from '../utils/csvExporter';
-import { embedDirectlyIntoItem } from '../utils/metadataEmbedder';
+import { embedDirectlyIntoItem, downloadEmbeddedImage } from '../utils/metadataEmbedder';
 
 interface MetadataCardProps {
   item: ImageItem;
@@ -30,6 +30,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
   ({ item, platform, onUpdateItem, onRetryItem, onRemoveItem, onOpenEmbedModal }) => {
     const [copiedField, setCopiedField] = useState<string | null>(null);
     const [isEmbeddingSingle, setIsEmbeddingSingle] = useState(false);
+    const [isDownloadingImage, setIsDownloadingImage] = useState(false);
     const [embedToast, setEmbedToast] = useState<string | null>(null);
 
     const handleCopy = (field: string, text: string) => {
@@ -68,6 +69,19 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
       } else if (onOpenEmbedModal) {
         // Open folder embedder to write in-place to directory
         onOpenEmbedModal();
+      }
+    };
+
+    const handleDownloadSingleImage = async () => {
+      setIsDownloadingImage(true);
+      try {
+        await downloadEmbeddedImage(item);
+        setEmbedToast(`Downloaded "${item.name}" with full embedded EXIF, IPTC & XMP!`);
+      } catch (err: any) {
+        setEmbedToast(`Save error: ${err?.message || 'Failed'}`);
+      } finally {
+        setIsDownloadingImage(false);
+        setTimeout(() => setEmbedToast(null), 3500);
       }
     };
 
@@ -227,6 +241,22 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
                     <Box className="w-3.5 h-3.5 text-[#FF1A1A]" />
                   )}
                   <span>Embed In-Place (No Download)</span>
+                </button>
+
+                {/* Direct Download Image with Embedded Metadata & Renamed to Title */}
+                <button
+                  type="button"
+                  onClick={handleDownloadSingleImage}
+                  disabled={isDownloadingImage || (!item.title && (!item.keywords || item.keywords.length === 0))}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-[#0d1e17] border-2 border-emerald-500/80 hover:border-emerald-400 text-emerald-400 transition-all cursor-pointer disabled:opacity-50 shadow-[0_0_8px_rgba(16,185,129,0.2)]"
+                  title="Download image file with Title-filename and embedded EXIF, IPTC & XMP"
+                >
+                  {isDownloadingImage ? (
+                    <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                  )}
+                  <span>Save Image (Embedded)</span>
                 </button>
 
                 <button

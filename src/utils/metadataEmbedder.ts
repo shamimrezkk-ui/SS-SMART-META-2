@@ -91,7 +91,7 @@ function buildApp13Segment(title: string, description: string, keywords: string[
   const payloadTotal = psHeader.length + 4 + iptcLen + padByte.length;
   const segLen = payloadTotal + 2;
 
-  const seg = new Uint8Array(2 + payloadTotal);
+  const seg = new Uint8Array(4 + payloadTotal);
   seg[0] = 0xff;
   seg[1] = 0xed; // APP13 marker
   seg[2] = (segLen >> 8) & 0xff;
@@ -154,7 +154,7 @@ function buildXmpApp1Segment(title: string, description: string, keywords: strin
   const payloadTotal = xmpIdentifier.length + xmpBytes.length;
   const segLen = payloadTotal + 2;
 
-  const seg = new Uint8Array(2 + payloadTotal);
+  const seg = new Uint8Array(4 + payloadTotal);
   seg[0] = 0xff;
   seg[1] = 0xe1; // APP1 marker
   seg[2] = (segLen >> 8) & 0xff;
@@ -191,8 +191,9 @@ function buildExifApp1Segment(title: string, description: string, keywords: stri
     dumpedBytes[i] = dumpedStr.charCodeAt(i) & 0xff;
   }
 
-  const segLen = dumpedBytes.length + 2;
-  const seg = new Uint8Array(2 + dumpedBytes.length);
+  const payloadLen = dumpedBytes.length;
+  const segLen = payloadLen + 2;
+  const seg = new Uint8Array(4 + payloadLen);
   seg[0] = 0xff;
   seg[1] = 0xe1; // APP1 marker
   seg[2] = (segLen >> 8) & 0xff;
@@ -489,4 +490,39 @@ export async function embedDirectlyIntoItem(
   } catch (error: any) {
     return { success: false, message: error?.message || 'Failed to embed' };
   }
+}
+
+/**
+ * Downloads a single image file with embedded EXIF, IPTC & XMP metadata and title filename
+ */
+export async function downloadEmbeddedImage(item: ImageItem): Promise<void> {
+  let sourceBuffer: ArrayBuffer;
+  if (item.originalFile) {
+    sourceBuffer = await item.originalFile.arrayBuffer();
+  } else {
+    const res = await fetch(item.previewUrl);
+    sourceBuffer = await res.arrayBuffer();
+  }
+
+  const uint8 = new Uint8Array(sourceBuffer);
+  const updatedBytes = embedMetadataInBytes(
+    uint8,
+    item.title || item.name,
+    item.description || item.title || '',
+    item.keywords || []
+  );
+
+  const targetName = titleToFilename(item.title, item.name);
+  const blob = new Blob([updatedBytes.buffer as ArrayBuffer], {
+    type: item.format === 'PNG' ? 'image/png' : 'image/jpeg',
+  });
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = targetName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

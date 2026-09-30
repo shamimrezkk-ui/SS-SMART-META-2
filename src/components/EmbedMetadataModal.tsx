@@ -8,12 +8,13 @@ import {
   Loader2,
   AlertCircle,
   FileCheck,
+  Download,
   ShieldCheck,
   Check,
   Sparkles,
 } from 'lucide-react';
 import { ImageItem, PlatformType } from '../types';
-import { embedMetadataInBytes } from '../utils/metadataEmbedder';
+import { embedMetadataInBytes, downloadEmbeddedImage } from '../utils/metadataEmbedder';
 import { titleToFilename } from '../utils/filenameHelper';
 
 interface EmbedMetadataModalProps {
@@ -32,6 +33,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
   onUpdateItem,
 }) => {
   const [isEmbedding, setIsEmbedding] = useState(false);
+  const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
@@ -90,12 +92,27 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
                 sourceBuffer = await f.arrayBuffer();
                 fileFound = true;
               } catch {
-                // Try in-memory originalFile if present
-                if (item.originalFile) {
-                  sourceBuffer = await item.originalFile.arrayBuffer();
-                  fileFound = true;
-                }
+                // Scan directory case-insensitively
+                try {
+                  for await (const entry of dirHandle.values()) {
+                    if (
+                      entry.kind === 'file' &&
+                      entry.name.toLowerCase() === oldName.toLowerCase()
+                    ) {
+                      const f = await entry.getFile();
+                      sourceBuffer = await f.arrayBuffer();
+                      fileFound = true;
+                      break;
+                    }
+                  }
+                } catch {}
               }
+            }
+
+            // Fallback to in-memory originalFile if present
+            if (!sourceBuffer && item.originalFile) {
+              sourceBuffer = await item.originalFile.arrayBuffer();
+              fileFound = true;
             }
 
             if (fileFound && sourceBuffer) {
@@ -166,6 +183,37 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
       }
     } finally {
       setIsEmbedding(false);
+    }
+  };
+
+  // Direct batch download of image files with embedded metadata
+  const handleDownloadAllImages = async () => {
+    setIsDownloadingAll(true);
+    setStatusMessage('Downloading images with embedded EXIF, IPTC & XMP metadata...');
+    setCompletedCount(0);
+    setCompletedList([]);
+    setIsFinished(false);
+
+    try {
+      let count = 0;
+      const doneNames: string[] = [];
+      for (let i = 0; i < validItems.length; i++) {
+        const item = validItems[i];
+        setCurrentFileIndex(i + 1);
+        setStatusMessage(`Embedding & saving "${item.name}" (${i + 1}/${validItems.length})...`);
+        await downloadEmbeddedImage(item);
+        count++;
+        doneNames.push(`✓ "${item.name}" [Downloaded with EXIF, IPTC & XMP]`);
+        setCompletedCount(count);
+        setCompletedList([...doneNames]);
+        await new Promise((r) => setTimeout(r, 200));
+      }
+      setIsFinished(true);
+      setStatusMessage(`Completed! ${count} image files downloaded with full embedded metadata.`);
+    } catch (e: any) {
+      setStatusMessage(`Download error: ${e?.message || 'Failed to download files'}`);
+    } finally {
+      setIsDownloadingAll(false);
     }
   };
 
@@ -299,7 +347,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
         </div>
 
         {/* Modal Actions */}
-        <div className="flex items-center justify-between pt-4 border-t-2 border-[#202c42] mt-4">
+        <div className="flex items-center justify-between pt-4 border-t-2 border-[#202c42] mt-4 flex-wrap gap-2">
           <button
             type="button"
             onClick={onClose}
@@ -308,24 +356,48 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
             {isFinished ? 'Close' : 'Cancel'}
           </button>
 
-          <button
-            type="button"
-            disabled={isEmbedding || validItems.length === 0}
-            onClick={handleDirectFolderOverwrite}
-            className="flex items-center gap-2 px-6 py-2.5 btn-red-gradient text-white text-xs font-black rounded-xl cursor-pointer shadow-[0_0_15px_rgba(255,0,0,0.5)] disabled:opacity-50"
-          >
-            {isEmbedding ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Applying In-Place...</span>
-              </>
-            ) : (
-              <>
-                <FolderSync className="w-4 h-4" />
-                <span>Select Folder & Set In-Place (No Downloads)</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Direct Download Files with Embedded Metadata */}
+            <button
+              type="button"
+              disabled={isEmbedding || isDownloadingAll || validItems.length === 0}
+              onClick={handleDownloadAllImages}
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-[#0d1e17] border-2 border-emerald-500/80 hover:border-emerald-400 text-emerald-400 text-xs font-black rounded-xl cursor-pointer shadow-[0_0_10px_rgba(16,185,129,0.25)] disabled:opacity-50"
+              title="Download image files directly with embedded metadata"
+            >
+              {isDownloadingAll ? (
+                <>
+                  <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+                  <span>Downloading...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 text-emerald-400" />
+                  <span>Download All Images (Embedded)</span>
+                </>
+              )}
+            </button>
+
+            {/* Direct In-Place Folder Overwrite */}
+            <button
+              type="button"
+              disabled={isEmbedding || isDownloadingAll || validItems.length === 0}
+              onClick={handleDirectFolderOverwrite}
+              className="flex items-center gap-2 px-5 py-2.5 btn-red-gradient text-white text-xs font-black rounded-xl cursor-pointer shadow-[0_0_15px_rgba(255,0,0,0.5)] disabled:opacity-50"
+            >
+              {isEmbedding ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Writing In-Place...</span>
+                </>
+              ) : (
+                <>
+                  <FolderSync className="w-4 h-4" />
+                  <span>Select Folder & Save In-Place</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
