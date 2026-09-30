@@ -37,12 +37,13 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
   const [statusMessage, setStatusMessage] = useState('');
   const [completedList, setCompletedList] = useState<string[]>([]);
   const [isFinished, setIsFinished] = useState(false);
+  const [renameFileWithTitle, setRenameFileWithTitle] = useState(false);
 
   if (!isOpen) return null;
 
   const validItems = items.filter((i) => i.title || (i.keywords && i.keywords.length > 0));
 
-  // Direct In-Place Folder Overwrite & Rename (Zero Browser Downloads)
+  // Direct In-Place Folder Overwrite (Zero Browser Downloads)
   const handleDirectFolderOverwrite = async () => {
     setIsEmbedding(true);
     setStatusMessage('Accessing local source folder...');
@@ -57,7 +58,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
           mode: 'readwrite',
         });
 
-        setStatusMessage('Folder connected. Writing EXIF, IPTC, XMP & Title-filenames directly in-place...');
+        setStatusMessage('Folder connected. Writing EXIF, IPTC, XMP directly into files in-place...');
 
         let count = 0;
         const doneNames: string[] = [];
@@ -67,9 +68,9 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
           setCurrentFileIndex(i + 1);
 
           const oldName = item.originalName || item.name;
-          const targetName = titleToFilename(item.title, item.name);
+          const targetName = renameFileWithTitle ? titleToFilename(item.title, item.name) : oldName;
 
-          setStatusMessage(`Embedding metadata into "${oldName}" ➜ "${targetName}"...`);
+          setStatusMessage(`Embedding metadata into "${oldName}" in-place...`);
 
           try {
             // Locate existing file handle in folder
@@ -107,7 +108,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
                 item.keywords || []
               );
 
-              // Write directly to disk under the Title-synced filename!
+              // Write directly to disk in-place!
               const newHandle = await dirHandle.getFileHandle(targetName, { create: true });
               const writable = await newHandle.createWritable();
               await writable.write(
@@ -130,7 +131,11 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
               }
 
               count++;
-              doneNames.push(`✓ "${oldName}" ➜ "${targetName}" [EXIF, IPTC, XMP & Title Set In-Place]`);
+              doneNames.push(
+                renameFileWithTitle
+                  ? `✓ "${oldName}" ➜ "${targetName}" [EXIF, IPTC & XMP Set In-Place]`
+                  : `✓ "${oldName}" [EXIF, IPTC & XMP Saved Directly Inside File]`
+              );
               setCompletedCount(count);
             } else {
               doneNames.push(`⚠ "${oldName}" (File not found in selected directory)`);
@@ -146,7 +151,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
 
         setIsFinished(true);
         setStatusMessage(
-          `Success! ${count} files embedded directly in-place with Title-filenames. ZERO files downloaded!`
+          `Success! ${count} files updated in-place with Title, Description & Keywords. ZERO downloads!`
         );
       } else {
         setStatusMessage(
@@ -204,8 +209,20 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
               <span className="text-emerald-400 font-black">{validItems.length} Files with Metadata</span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300">Filename Policy:</span>
-              <span className="text-amber-400 font-black">Auto-Renamed to Match Title in folder</span>
+              <span className="text-slate-300">Filename Option:</span>
+              <label className="flex items-center gap-2 cursor-pointer select-none text-amber-300 hover:text-white">
+                <input
+                  type="checkbox"
+                  checked={renameFileWithTitle}
+                  onChange={(e) => setRenameFileWithTitle(e.target.checked)}
+                  className="w-4 h-4 rounded border-[#344666] text-[#FF0000] focus:ring-0 accent-[#FF0000] cursor-pointer"
+                />
+                <span className="text-xs">
+                  {renameFileWithTitle
+                    ? 'Rename to match Title'
+                    : 'Keep Original Filename (e.g. 1.jpg)'}
+                </span>
+              </label>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-300">Browser Downloads:</span>
@@ -224,8 +241,11 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
               <span>Direct In-Place Execution (No Browser Downloads):</span>
             </div>
             <p className="text-slate-200 text-[11px] leading-relaxed">
-              When you click the button below, select your image folder. The app writes <strong>Windows Details (XPTitle, XPKeywords, Comments)</strong>, <strong>IPTC IIM (8BIM)</strong>, and <strong>Adobe XMP</strong> directly into each file on disk and updates the filename to match the Title. <strong>No file will be downloaded through your browser!</strong>
+              When you click the button below, select your image folder. The app writes <strong>Windows Details (XPTitle, XPKeywords, Comments)</strong>, <strong>IPTC IIM (8BIM)</strong>, and <strong>Adobe XMP</strong> directly into each file on disk. <strong>No file will be downloaded through your browser!</strong>
             </p>
+            <div className="bg-[#0f1523] border border-[#23324d] rounded-lg p-2 text-[11px] text-emerald-300 font-mono">
+              ✓ যে ফোল্ডারে ফাইল আছে ঠিক সেই ফাইলের ভেতরেই মেটাডাটা সরাসরি সেভ হবে। ফাইলের কোয়ালিটি বা ফরম্যাট হুবহু অক্ষত থাকবে।
+            </div>
           </div>
 
           {/* Progress / Status display */}

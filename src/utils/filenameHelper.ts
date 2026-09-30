@@ -11,16 +11,17 @@ export function titleToFilename(title: string, currentFilename: string): string 
     ext = currentFilename.split('.').pop()?.toLowerCase() || 'jpg';
   }
 
-  // Sanitize title: remove illegal characters, trim, replace spaces with underscores
-  const clean = title
+  // Remove punctuation and special symbols
+  const cleanTitle = title
+    .replace(/[,;:.!?()[\]{}"'\\/|<>@#$%^&*+=~`]/g, ' ')
     .trim()
-    .replace(/[<>:"/\\|?*#%&{}\\$!'@+`=~^]/g, '') // remove illegal characters
-    .replace(/\s+/g, '_')                          // spaces to underscores
-    .replace(/_+/g, '_')                           // collapse duplicate underscores
-    .replace(/^_+|_+$/g, '')                       // trim leading/trailing underscores
-    .slice(0, 95);                                 // keep safe length
+    .replace(/\s+/g, ' ');
 
-  if (!clean) return currentFilename;
+  // Take the first 6-7 meaningful words for a clean, professional stock filename
+  const words = cleanTitle.split(' ').filter((w) => w.length > 0).slice(0, 7);
+  const namePart = words.join('_');
 
-  return `${clean}.${ext}`;
+  if (!namePart) return currentFilename;
+
+  return `${namePart}.${ext}`;
 }

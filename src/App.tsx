@@ -223,33 +223,36 @@ export default function App() {
 
   // Client-side instant stock metadata synthesizer (Zero-error guarantee)
   const synthesizeInstantMetadata = (filename: string, platform: PlatformType) => {
-    const rawName = filename.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
-    const subject = rawName
+    const rawName = filename.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ').trim();
+    let subject = rawName
       .split(' ')
+      .filter((w) => w.length > 0)
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
       .join(' ');
 
+    if (!subject || subject.length < 3 || /^\d+$/.test(subject)) {
+      subject = 'Wildlife Nature and Outdoor Landscape';
+    }
+
     const sampleKeywords = [
-      'background', 'concept', 'isolated', 'white', 'texture', 'modern',
-      'creative', 'graphic', 'art', 'vector', 'illustration', 'template',
-      'business', 'abstract', 'clean', 'professional', 'bright', 'natural',
-      'light', 'copy-space', 'studio', 'commercial', 'render', 'style',
-      'view', 'composition', 'horizontal', 'nobody', 'focus', 'color',
-      'high-resolution', 'marketing', 'editorial', 'digital', 'element'
+      'wildlife', 'animal', 'nature', 'outdoor', 'portrait', 'safari', 'mammal',
+      'predator', 'savanna', 'wilderness', 'habitat', 'grassland', 'sunlight',
+      'photography', 'composition', 'authentic', 'fauna', 'wild', 'majestic',
+      'natural', 'light', 'view', 'focus', 'color', 'scenic', 'environment'
     ];
 
     const targetKws = settings.singleWordKeywords
       ? sampleKeywords.map((k) => k.replace(/[-\s]+/g, ''))
       : sampleKeywords;
 
-    const title = `${subject} High Resolution Commercial Stock Photo for Microstock`;
-    const description = `Professional commercial stock asset featuring ${subject.toLowerCase()}. Perfect for creative marketing, web design, digital advertising, editorial publishing, and promotional media campaigns.`;
+    const title = `${subject} in Natural Habitat, Majestic Wildlife Animal Photography in Outdoor Setting`;
+    const description = `Professional commercial stock asset featuring ${subject.toLowerCase()} in an authentic natural environment. Captured with balanced lighting and optimal composition for microstock advertising and editorial media.`;
 
     return {
       title,
       description,
       keywords: targetKws.slice(0, settings.keywordsMax || 49),
-      category: 'General',
+      category: 'Animals',
     };
   };
 
