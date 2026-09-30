@@ -75,13 +75,16 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
     const handleDownloadSingleImage = async () => {
       setIsDownloadingImage(true);
       try {
-        await downloadEmbeddedImage(item);
-        setEmbedToast(`Downloaded "${item.name}" with full embedded EXIF, IPTC & XMP!`);
+        const savedName = await downloadEmbeddedImage(item);
+        if (savedName) {
+          onUpdateItem(item.id, { name: savedName });
+        }
+        setEmbedToast(`Downloaded "${savedName || item.name}" with full embedded EXIF (XP Tags), IPTC & XMP!`);
       } catch (err: any) {
         setEmbedToast(`Save error: ${err?.message || 'Failed'}`);
       } finally {
         setIsDownloadingImage(false);
-        setTimeout(() => setEmbedToast(null), 3500);
+        setTimeout(() => setEmbedToast(null), 4000);
       }
     };
 
@@ -219,14 +222,40 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
 
           {/* RIGHT COLUMN: GENERATED METADATA with Sharp Border Inputs */}
           <div className="md:col-span-8 p-4 flex flex-col justify-between space-y-3.5 bg-[#101522]">
-            {/* Header: Title, Embed In-Place & Download CSV */}
+            {/* Header: Title, Source badge, Embed In-Place & Download CSV */}
             <div className="flex items-center justify-between pb-2 border-b-2 border-[#202c42] flex-wrap gap-2">
               <div className="flex items-center gap-2 text-xs font-black text-amber-400">
                 <TableProperties className="w-4 h-4" />
                 <span>Generated Metadata</span>
+                {item.source === 'gemini' && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-950/80 border border-purple-500/80 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.3)]">
+                    ✨ Gemini AI
+                  </span>
+                )}
+                {item.source === 'instant_engine' && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-950/80 border border-blue-500/80 text-blue-300">
+                    ⚡ Instant Engine
+                  </span>
+                )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Direct Download Image with Embedded Metadata & Renamed to Title */}
+                <button
+                  type="button"
+                  onClick={handleDownloadSingleImage}
+                  disabled={isDownloadingImage || (!item.title && (!item.keywords || item.keywords.length === 0))}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-[#0d2218] border-2 border-emerald-500 hover:border-emerald-300 text-emerald-400 transition-all cursor-pointer disabled:opacity-50 shadow-[0_0_12px_rgba(16,185,129,0.3)] hover:shadow-[0_0_18px_rgba(16,185,129,0.5)]"
+                  title="Download image file renamed with Title and embedded EXIF, IPTC & XMP metadata"
+                >
+                  {isDownloadingImage ? (
+                    <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                  )}
+                  <span>Save Image (Renamed & Embedded)</span>
+                </button>
+
                 {/* 1-Click Embed In-Place (Zero Downloads) */}
                 <button
                   type="button"
@@ -240,23 +269,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
                   ) : (
                     <Box className="w-3.5 h-3.5 text-[#FF1A1A]" />
                   )}
-                  <span>Embed In-Place (No Download)</span>
-                </button>
-
-                {/* Direct Download Image with Embedded Metadata & Renamed to Title */}
-                <button
-                  type="button"
-                  onClick={handleDownloadSingleImage}
-                  disabled={isDownloadingImage || (!item.title && (!item.keywords || item.keywords.length === 0))}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-[#0d1e17] border-2 border-emerald-500/80 hover:border-emerald-400 text-emerald-400 transition-all cursor-pointer disabled:opacity-50 shadow-[0_0_8px_rgba(16,185,129,0.2)]"
-                  title="Download image file with Title-filename and embedded EXIF, IPTC & XMP"
-                >
-                  {isDownloadingImage ? (
-                    <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5 text-emerald-400" />
-                  )}
-                  <span>Save Image (Embedded)</span>
+                  <span>Embed In-Place</span>
                 </button>
 
                 <button

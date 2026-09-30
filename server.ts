@@ -294,7 +294,11 @@ app.post('/api/gemini/generate-metadata', async (req: Request, res: Response) =>
   // If Gemini API Key is available, attempt real AI generation
   if (keyToUse && imageBase64 && imageBase64.length > 50) {
     try {
-      const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '');
+      const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '').replace(/\s+/g, '');
+      let cleanMime = (mimeType || 'image/jpeg').toLowerCase();
+      if (cleanMime === 'image/jpg') cleanMime = 'image/jpeg';
+      if (!cleanMime.startsWith('image/')) cleanMime = 'image/jpeg';
+
       const ai = new GoogleGenAI({
         apiKey: keyToUse,
         httpOptions: {
@@ -327,26 +331,24 @@ REQUIREMENTS:
 
       let response: any = null;
       let lastErr: any = null;
-      const CANDIDATE_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest'];
+      const CANDIDATE_MODELS = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-flash-latest'];
 
       for (const modelName of CANDIDATE_MODELS) {
         try {
           response = await Promise.race([
             ai.models.generateContent({
               model: modelName,
-              contents: {
-                parts: [
-                  {
-                    inlineData: {
-                      mimeType: mimeType,
-                      data: cleanBase64,
-                    },
+              contents: [
+                {
+                  inlineData: {
+                    mimeType: cleanMime,
+                    data: cleanBase64,
                   },
-                  {
-                    text: `Analyze this image (filename: "${filename}") in detail and output the requested JSON metadata strictly matching what is visible in the picture.`,
-                  },
-                ],
-              },
+                },
+                {
+                  text: `Analyze this image (filename: "${filename}") in detail and output the requested JSON metadata strictly matching what is visible in the picture.`,
+                },
+              ],
               config: {
                 systemInstruction: systemPrompt,
                 responseMimeType: 'application/json',
@@ -363,16 +365,17 @@ REQUIREMENTS:
               },
             }),
             new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error(`Timeout with ${modelName}`)), 15000)
+              setTimeout(() => reject(new Error(`Timeout with ${modelName}`)), 25000)
             ),
           ]);
 
           if (response && response.text) {
+            console.log(`Successfully generated metadata using Gemini model ${modelName}`);
             break;
           }
         } catch (mErr: any) {
           lastErr = mErr;
-          console.warn(`Model ${modelName} failed or busy:`, mErr?.message?.slice(0, 100));
+          console.warn(`Model ${modelName} failed or busy:`, mErr?.message?.slice(0, 150));
         }
       }
 

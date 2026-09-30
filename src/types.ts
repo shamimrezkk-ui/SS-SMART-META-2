@@ -31,6 +31,7 @@ export interface ImageItem {
   fileHandle?: any; // FileSystemFileHandle for in-place direct writing without duplicates
   originalFile?: File;
   originalName?: string;
+  source?: 'gemini' | 'instant_engine';
 }
 
 export interface PromptItem {

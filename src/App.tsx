@@ -380,6 +380,7 @@ export default function App() {
                       description: data.data.description || data.data.title,
                       keywords: Array.isArray(data.data.keywords) ? data.data.keywords : [],
                       category: data.data.category || 'General',
+                      source: data.source || 'gemini',
                       retryCount: 0,
                       error: undefined,
                     }
@@ -402,6 +403,7 @@ export default function App() {
                       description: fallback.description,
                       keywords: fallback.keywords,
                       category: fallback.category,
+                      source: 'instant_engine',
                       retryCount: 0,
                       error: undefined,
                     }
@@ -425,6 +427,7 @@ export default function App() {
                     description: fallback.description,
                     keywords: fallback.keywords,
                     category: fallback.category,
+                    source: 'instant_engine',
                     retryCount: 0,
                     error: undefined,
                   }

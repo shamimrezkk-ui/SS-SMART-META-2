@@ -39,7 +39,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
   const [statusMessage, setStatusMessage] = useState('');
   const [completedList, setCompletedList] = useState<string[]>([]);
   const [isFinished, setIsFinished] = useState(false);
-  const [renameFileWithTitle, setRenameFileWithTitle] = useState(false);
+  const [renameFileWithTitle, setRenameFileWithTitle] = useState(true);
 
   if (!isOpen) return null;
 
@@ -201,9 +201,12 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
         const item = validItems[i];
         setCurrentFileIndex(i + 1);
         setStatusMessage(`Embedding & saving "${item.name}" (${i + 1}/${validItems.length})...`);
-        await downloadEmbeddedImage(item);
+        const targetName = await downloadEmbeddedImage(item);
         count++;
-        doneNames.push(`✓ "${item.name}" [Downloaded with EXIF, IPTC & XMP]`);
+        doneNames.push(`✓ "${item.name}" ➜ "${targetName}" [Downloaded with EXIF, IPTC & XMP]`);
+        if (onUpdateItem) {
+          onUpdateItem(item.id, { name: targetName });
+        }
         setCompletedCount(count);
         setCompletedList([...doneNames]);
         await new Promise((r) => setTimeout(r, 200));

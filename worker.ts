@@ -137,6 +137,58 @@ export default {
     if (url.pathname === '/api/gemini/generate-metadata' && request.method === 'POST') {
       try {
         const body = (await request.json()) as any;
+        const keyToUse = body?.apiKey?.trim() || env.GEMINI_API_KEY;
+
+        if (keyToUse && body?.imageBase64 && body.imageBase64.length > 50) {
+          try {
+            const cleanBase64 = body.imageBase64.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '').replace(/\s+/g, '');
+            let cleanMime = (body.mimeType || 'image/jpeg').toLowerCase();
+            if (cleanMime === 'image/jpg') cleanMime = 'image/jpeg';
+            if (!cleanMime.startsWith('image/')) cleanMime = 'image/jpeg';
+
+            const geminiRes = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${keyToUse}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      parts: [
+                        { inline_data: { mime_type: cleanMime, data: cleanBase64 } },
+                        { text: `Analyze this image in detail and return JSON: {"title": "12-20 words commercial title", "description": "2-3 sentences", "keywords": ["40-49 stock keywords"], "category": "Animals/Landscapes/People/Food/Business/Tech"}` }
+                      ]
+                    }
+                  ],
+                  generationConfig: { responseMimeType: 'application/json' }
+                })
+              }
+            );
+
+            if (geminiRes.ok) {
+              const resJson = (await geminiRes.json()) as any;
+              const textOutput = resJson?.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (textOutput) {
+                let parsed: any;
+                try {
+                  parsed = JSON.parse(textOutput);
+                } catch {
+                  const m = textOutput.match(/\{[\s\S]*\}/);
+                  if (m) parsed = JSON.parse(m[0]);
+                }
+                if (parsed && parsed.title && Array.isArray(parsed.keywords)) {
+                  return new Response(
+                    JSON.stringify({ success: true, data: parsed, source: 'gemini' }),
+                    { headers: { 'Content-Type': 'application/json' } }
+                  );
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('Worker gemini fetch fallback', e);
+          }
+        }
+
         const data = generateInstantMetadata(body || {});
         return new Response(
           JSON.stringify({ success: true, data, source: 'instant_engine' }),

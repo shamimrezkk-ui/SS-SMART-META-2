@@ -112,17 +112,18 @@ export const CountersBar: React.FC<CountersBarProps> = ({
           <span>Download All CSV</span>
         </button>
 
-        {/* Embed Metadata */}
+        {/* Save & Embed Images */}
         <button
           type="button"
           onClick={onEmbedMetadata}
           disabled={totalCount === 0}
-          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black bg-[#0b0f17] border-2 border-[#2b3a56] transition-colors cursor-pointer ${
-            totalCount === 0 ? 'text-slate-500 border-[#232f46] cursor-not-allowed' : 'text-white hover:border-[#FF0000]'
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black bg-[#0b0f17] border-2 border-emerald-500/80 transition-colors cursor-pointer ${
+            totalCount === 0 ? 'text-slate-500 border-[#232f46] cursor-not-allowed' : 'text-emerald-400 hover:border-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.25)]'
           }`}
+          title="Download or Overwrite Images with Title-synced Filenames and Embedded EXIF, IPTC & XMP Metadata"
         >
-          <Box className="w-3.5 h-3.5 text-[#FF1A1A]" />
-          <span>Embed Metadata</span>
+          <Box className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Save & Embed Images</span>
         </button>
 
         {/* Clear All */}

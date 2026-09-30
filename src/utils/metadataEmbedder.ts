@@ -11,7 +11,7 @@ function encodeUtf8(str: string): Uint8Array {
 
 /**
  * Converts string to UTF-16LE byte array for Windows XP tags (XPTitle, XPKeywords, XPComment, XPSubject)
- * Terminated with [0x00, 0x00]
+ * Must be null-terminated with [0x00, 0x00]
  */
 function toUtf16LeBytes(str: string): number[] {
   const bytes: number[] = [];
@@ -22,6 +22,22 @@ function toUtf16LeBytes(str: string): number[] {
     bytes.push((code >> 8) & 0xff);
   }
   bytes.push(0, 0); // null termination
+  return bytes;
+}
+
+function toBinaryString(uint8: Uint8Array): string {
+  let str = '';
+  for (let i = 0; i < uint8.length; i++) {
+    str += String.fromCharCode(uint8[i]);
+  }
+  return str;
+}
+
+function binaryStringToUint8(str: string): Uint8Array {
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) {
+    bytes[i] = str.charCodeAt(i) & 0xff;
+  }
   return bytes;
 }
 
@@ -37,7 +53,6 @@ function buildIptcData(title: string, description: string, keywords: string[]): 
   const addTag = (record: number, tagNum: number, value: string) => {
     const bytes = encodeUtf8(value.trim());
     if (bytes.length === 0) return;
-    // Tag header: 0x1C (Tag marker), Record number, Tag number, 2 bytes length (big-endian)
     parts.push(0x1c);
     parts.push(record);
     parts.push(tagNum);
@@ -166,46 +181,8 @@ function buildXmpApp1Segment(title: string, description: string, keywords: strin
 }
 
 /**
- * Builds EXIF APP1 segment (0xFF 0xE1) with standard IFD0 and Windows XP tags
- * This ensures Windows Explorer Properties -> Details tab shows Title, Subject, Tags, Comments!
- */
-function buildExifApp1Segment(title: string, description: string, keywords: string[]): Uint8Array {
-  const kwString = keywords.join('; ');
-  const exifObj = {
-    '0th': {
-      [piexif.ImageIFD.ImageDescription]: title || description || 'Commercial Stock Asset',
-      [piexif.ImageIFD.Software]: 'SS SMART META 2 Contributor Pro',
-      [piexif.ImageIFD.Artist]: 'Shamim Reza',
-      [piexif.ImageIFD.XPTitle]: toUtf16LeBytes(title || ''),
-      [piexif.ImageIFD.XPKeywords]: toUtf16LeBytes(kwString),
-      [piexif.ImageIFD.XPComment]: toUtf16LeBytes(description || ''),
-      [piexif.ImageIFD.XPSubject]: toUtf16LeBytes(title || ''),
-    },
-    Exif: {},
-    GPS: {},
-  };
-
-  const dumpedStr = piexif.dump(exifObj);
-  const dumpedBytes = new Uint8Array(dumpedStr.length);
-  for (let i = 0; i < dumpedStr.length; i++) {
-    dumpedBytes[i] = dumpedStr.charCodeAt(i) & 0xff;
-  }
-
-  const payloadLen = dumpedBytes.length;
-  const segLen = payloadLen + 2;
-  const seg = new Uint8Array(4 + payloadLen);
-  seg[0] = 0xff;
-  seg[1] = 0xe1; // APP1 marker
-  seg[2] = (segLen >> 8) & 0xff;
-  seg[3] = segLen & 0xff;
-  seg.set(dumpedBytes, 4);
-
-  return seg;
-}
-
-/**
  * Embeds EXIF (Windows XP tags), IPTC IIM (8BIM), and XMP metadata into a JPEG buffer
- * Guaranteed to be visible in Windows Explorer Details, Adobe Photoshop, Bridge, Lightroom, and Stock Portals!
+ * Guaranteed to be visible in Windows Explorer Details tab, Adobe Photoshop, Bridge, Lightroom, and Microstock Portals!
  */
 export function embedMetadataInJpeg(
   jpegBytes: Uint8Array,
@@ -218,98 +195,68 @@ export function embedMetadataInJpeg(
     return jpegBytes;
   }
 
-  const exifSeg = buildExifApp1Segment(title, description, keywords);
-  const xmpSeg = buildXmpApp1Segment(title, description, keywords);
-  const iptcSeg = buildApp13Segment(title, description, keywords);
+  const cleanTitle = (title || '').trim();
+  const cleanDesc = (description || title || '').trim();
+  const kwString = keywords.filter((k) => Boolean(k && k.trim())).join('; ');
 
-  // Split existing JPEG segments cleanly
-  let app0Segment: Uint8Array | null = null;
-  const otherSegments: Uint8Array[] = [];
-  let pos = 2;
+  // 1. Build comprehensive EXIF object with Windows XP tags and standard tags
+  const exifObj: any = {
+    '0th': {
+      [piexif.ImageIFD.ImageDescription]: cleanTitle || 'Stock Photography Asset',
+      [piexif.ImageIFD.Software]: 'SS SMART META 2 Contributor Pro',
+      [piexif.ImageIFD.Artist]: 'Shamim Reza',
+      // Windows Explorer Details tab native tags:
+      [piexif.ImageIFD.XPTitle]: toUtf16LeBytes(cleanTitle),
+      [piexif.ImageIFD.XPKeywords]: toUtf16LeBytes(kwString),
+      [piexif.ImageIFD.XPComment]: toUtf16LeBytes(cleanDesc),
+      [piexif.ImageIFD.XPSubject]: toUtf16LeBytes(cleanTitle),
+      [piexif.ImageIFD.XPAuthor]: toUtf16LeBytes('Shamim Reza'),
+    },
+    Exif: {
+      [piexif.ExifIFD.UserComment]: cleanDesc ? `ASCII\0\0\0${cleanDesc}` : 'ASCII\0\0\0Stock Asset',
+    },
+    GPS: {},
+  };
 
-  while (pos < jpegBytes.length) {
-    if (jpegBytes[pos] === 0xff) {
-      const marker = jpegBytes[pos + 1];
+  let withExifBytes: Uint8Array;
+  try {
+    const dumpedStr = piexif.dump(exifObj);
+    const jpegStr = toBinaryString(jpegBytes);
+    const insertedStr = piexif.insert(dumpedStr, jpegStr);
+    withExifBytes = binaryStringToUint8(insertedStr);
+  } catch (exifErr) {
+    console.warn('piexif.insert fallback:', exifErr);
+    withExifBytes = jpegBytes;
+  }
 
-      // EOI (End of image)
-      if (marker === 0xd9) {
-        otherSegments.push(jpegBytes.subarray(pos));
-        break;
-      }
+  // 2. Insert XMP (APP1) and Photoshop IPTC (APP13) right after the EXIF APP1 segment
+  try {
+    const xmpSeg = buildXmpApp1Segment(cleanTitle, cleanDesc, keywords);
+    const iptcSeg = buildApp13Segment(cleanTitle, cleanDesc, keywords);
 
-      // SOS (Start of scan - scan data follows until EOI)
-      if (marker === 0xda) {
-        otherSegments.push(jpegBytes.subarray(pos));
-        break;
-      }
-
-      // Restart or null markers
-      if (marker === 0x00 || (marker >= 0xd0 && marker <= 0xd7)) {
-        pos += 2;
-        continue;
-      }
-
-      if (pos + 3 >= jpegBytes.length) break;
-
-      const segLen = (jpegBytes[pos + 2] << 8) | jpegBytes[pos + 3];
-      const segTotal = 2 + segLen;
-      if (pos + segTotal > jpegBytes.length) break;
-
-      const fullSeg = jpegBytes.subarray(pos, pos + segTotal);
-
-      if (marker === 0xe0) {
-        // Keep JFIF APP0 so JPEG spec order is maintained
-        app0Segment = fullSeg;
-      } else if (marker === 0xe1) {
-        // Omit existing EXIF/XMP to prevent duplicate or conflicting metadata
-      } else if (marker === 0xed) {
-        // Omit existing APP13 (Photoshop IPTC)
-      } else {
-        otherSegments.push(fullSeg);
-      }
-
-      pos += segTotal;
-    } else {
-      pos++;
+    // Find position right after APP1 EXIF segment (or after APP0 JFIF if no EXIF)
+    let insertPos = 2;
+    if (withExifBytes[2] === 0xff && withExifBytes[3] === 0xe0) {
+      const app0Len = (withExifBytes[4] << 8) | withExifBytes[5];
+      insertPos = 2 + 2 + app0Len;
     }
+    if (withExifBytes[insertPos] === 0xff && withExifBytes[insertPos + 1] === 0xe1) {
+      const exifSegLen = (withExifBytes[insertPos + 2] << 8) | withExifBytes[insertPos + 3];
+      insertPos += 2 + exifSegLen;
+    }
+
+    const finalLength = withExifBytes.length + xmpSeg.length + iptcSeg.length;
+    const finalBytes = new Uint8Array(finalLength);
+    finalBytes.set(withExifBytes.subarray(0, insertPos), 0);
+    finalBytes.set(xmpSeg, insertPos);
+    finalBytes.set(iptcSeg, insertPos + xmpSeg.length);
+    finalBytes.set(withExifBytes.subarray(insertPos), insertPos + xmpSeg.length + iptcSeg.length);
+
+    return finalBytes;
+  } catch (xmpErr) {
+    console.warn('XMP/IPTC embedding fallback:', xmpErr);
+    return withExifBytes;
   }
-
-  // Calculate total byte size
-  let totalLength = 2; // SOI
-  if (app0Segment) totalLength += app0Segment.length;
-  totalLength += exifSeg.length;
-  totalLength += xmpSeg.length;
-  totalLength += iptcSeg.length;
-  for (const seg of otherSegments) {
-    totalLength += seg.length;
-  }
-
-  // Construct combined JPEG
-  const result = new Uint8Array(totalLength);
-  result[0] = 0xff;
-  result[1] = 0xd8; // SOI
-  let currentOffset = 2;
-
-  if (app0Segment) {
-    result.set(app0Segment, currentOffset);
-    currentOffset += app0Segment.length;
-  }
-
-  result.set(exifSeg, currentOffset);
-  currentOffset += exifSeg.length;
-
-  result.set(xmpSeg, currentOffset);
-  currentOffset += xmpSeg.length;
-
-  result.set(iptcSeg, currentOffset);
-  currentOffset += iptcSeg.length;
-
-  for (const seg of otherSegments) {
-    result.set(seg, currentOffset);
-    currentOffset += seg.length;
-  }
-
-  return result;
 }
 
 /**
@@ -341,27 +288,23 @@ function buildPngTextChunk(keyword: string, text: string): Uint8Array {
   const dataLen = kwBytes.length + 1 + textBytes.length;
 
   const chunkData = new Uint8Array(4 + dataLen);
-  // Chunk type 'tEXt'
-  chunkData[0] = 0x74;
-  chunkData[1] = 0x45;
-  chunkData[2] = 0x58;
-  chunkData[3] = 0x74;
+  chunkData[0] = 0x74; // 't'
+  chunkData[1] = 0x45; // 'E'
+  chunkData[2] = 0x58; // 'X'
+  chunkData[3] = 0x74; // 't'
 
   chunkData.set(kwBytes, 4);
-  chunkData[4 + kwBytes.length] = 0x00; // null separator
+  chunkData[4 + kwBytes.length] = 0x00;
   chunkData.set(textBytes, 4 + kwBytes.length + 1);
 
   const crc = calculateCrc32(chunkData);
 
   const totalChunk = new Uint8Array(4 + chunkData.length + 4);
-  // Length (4 bytes)
   totalChunk[0] = (dataLen >> 24) & 0xff;
   totalChunk[1] = (dataLen >> 16) & 0xff;
   totalChunk[2] = (dataLen >> 8) & 0xff;
   totalChunk[3] = dataLen & 0xff;
-  // Type + data
   totalChunk.set(chunkData, 4);
-  // CRC (4 bytes)
   const crcOffset = 4 + chunkData.length;
   totalChunk[crcOffset] = (crc >> 24) & 0xff;
   totalChunk[crcOffset + 1] = (crc >> 16) & 0xff;
@@ -372,7 +315,7 @@ function buildPngTextChunk(keyword: string, text: string): Uint8Array {
 }
 
 /**
- * Embeds metadata into PNG image via tEXt chunks (Title, Description, Keywords, Software)
+ * Embeds metadata into PNG image via tEXt chunks (Title, Description, Keywords, Software, Author)
  */
 export function embedMetadataInPng(
   pngBytes: Uint8Array,
@@ -380,7 +323,6 @@ export function embedMetadataInPng(
   description: string,
   keywords: string[]
 ): Uint8Array {
-  // Check PNG signature: 0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A
   if (
     pngBytes.length < 8 ||
     pngBytes[0] !== 0x89 ||
@@ -391,7 +333,6 @@ export function embedMetadataInPng(
     return pngBytes;
   }
 
-  // Find IHDR chunk (typically right after 8-byte signature: 4 bytes length, 4 bytes 'IHDR', 13 bytes data, 4 bytes crc = 25 bytes + 8 = 33)
   const ihdrEnd = 8 + 4 + 4 + 13 + 4;
   if (pngBytes.length < ihdrEnd) return pngBytes;
 
@@ -400,7 +341,7 @@ export function embedMetadataInPng(
     buildPngTextChunk('Description', description),
     buildPngTextChunk('Comment', description),
     buildPngTextChunk('Keywords', keywords.join(', ')),
-    buildPngTextChunk('Software', 'SS SMART META 2'),
+    buildPngTextChunk('Software', 'SS SMART META 2 Contributor Pro'),
     buildPngTextChunk('Author', 'Shamim Reza'),
   ];
 
@@ -440,7 +381,6 @@ export function embedMetadataInBytes(
 
 /**
  * Embeds metadata directly into original file in-place if FileSystemFileHandle is available
- * NO BROWSER DOWNLOADS TRIGGERED!
  */
 export async function embedDirectlyIntoItem(
   item: ImageItem
@@ -449,9 +389,6 @@ export async function embedDirectlyIntoItem(
     let sourceBuffer: ArrayBuffer;
     if (item.originalFile) {
       sourceBuffer = await item.originalFile.arrayBuffer();
-    } else if (item.previewUrl.startsWith('data:')) {
-      const res = await fetch(item.previewUrl);
-      sourceBuffer = await res.arrayBuffer();
     } else {
       const res = await fetch(item.previewUrl);
       sourceBuffer = await res.arrayBuffer();
@@ -465,26 +402,25 @@ export async function embedDirectlyIntoItem(
       item.keywords || []
     );
 
-    const targetName = titleToFilename(item.title, item.name);
+    const targetName = titleToFilename(item.title || item.name, item.name);
     const blob = new Blob([updatedBytes.buffer as ArrayBuffer], {
       type: item.format === 'PNG' ? 'image/png' : 'image/jpeg',
     });
 
-    // If FileSystemFileHandle is present, write directly in-place without duplicate
     if (item.fileHandle && typeof item.fileHandle.createWritable === 'function') {
       const writable = await item.fileHandle.createWritable();
       await writable.write(blob);
       await writable.close();
       return {
         success: true,
-        message: `Updated "${targetName}" directly in-place without download!`,
+        message: `Updated "${targetName}" directly in-place with embedded EXIF, IPTC & XMP!`,
         updatedName: targetName,
       };
     }
 
     return {
       success: true,
-      message: `Metadata ready for "${targetName}".`,
+      message: `Metadata prepared for "${targetName}".`,
       updatedName: targetName,
     };
   } catch (error: any) {
@@ -495,7 +431,7 @@ export async function embedDirectlyIntoItem(
 /**
  * Downloads a single image file with embedded EXIF, IPTC & XMP metadata and title filename
  */
-export async function downloadEmbeddedImage(item: ImageItem): Promise<void> {
+export async function downloadEmbeddedImage(item: ImageItem): Promise<string> {
   let sourceBuffer: ArrayBuffer;
   if (item.originalFile) {
     sourceBuffer = await item.originalFile.arrayBuffer();
@@ -512,7 +448,8 @@ export async function downloadEmbeddedImage(item: ImageItem): Promise<void> {
     item.keywords || []
   );
 
-  const targetName = titleToFilename(item.title, item.name);
+  // Rename filename according to Title
+  const targetName = titleToFilename(item.title || item.name, item.name);
   const blob = new Blob([updatedBytes.buffer as ArrayBuffer], {
     type: item.format === 'PNG' ? 'image/png' : 'image/jpeg',
   });
@@ -524,5 +461,7 @@ export async function downloadEmbeddedImage(item: ImageItem): Promise<void> {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+  return targetName;
 }
