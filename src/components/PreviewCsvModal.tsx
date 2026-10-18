@@ -32,7 +32,7 @@ export const PreviewCsvModal: React.FC<PreviewCsvModalProps> = ({
         {/* Header */}
         <div className="px-5 py-4 border-b border-[#1b2234] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-[#FF1A1A]" />
+            <FileText className="w-5 h-5 text-[#359FA0]" />
             <h2 className="text-base font-bold text-white">
               CSV Preview — {platform} Format ({items.length} items)
             </h2>
@@ -101,7 +101,7 @@ export const PreviewCsvModal: React.FC<PreviewCsvModalProps> = ({
               type="button"
               onClick={handleDownload}
               disabled={items.length === 0}
-              className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-black text-white btn-red-gradient shadow-[0_0_12px_rgba(255,0,0,0.35)] cursor-pointer"
+              className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-black text-white btn-teal-gradient shadow-[0_0_12px_rgba(53,159,160,0.35)] cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Download CSV</span>

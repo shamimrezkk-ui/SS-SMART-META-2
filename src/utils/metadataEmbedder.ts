@@ -141,7 +141,12 @@ function buildXmpApp1Segment(title: string, description: string, keywords: strin
  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
   <rdf:Description rdf:about=""
     xmlns:dc="http://purl.org/dc/elements/1.1/"
-    xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/">
+    xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/"
+    xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+    xmlns:xmpRights="http://ns.adobe.com/xap/1.0/rights/"
+    xmlns:MicrosoftPhoto="http://ns.microsoft.com/photo/1.0/"
+    xmp:Rating="5"
+    MicrosoftPhoto:Rating="99">
    <dc:title>
     <rdf:Alt>
      <rdf:li xml:lang="x-default">${cleanTitle}</rdf:li>
@@ -159,6 +164,9 @@ function buildXmpApp1Segment(title: string, description: string, keywords: strin
    </dc:subject>
    <photoshop:Headline>${cleanTitle}</photoshop:Headline>
    <photoshop:CaptionWriter>SS SMART META 2</photoshop:CaptionWriter>
+   <photoshop:Urgency>5</photoshop:Urgency>
+   <xmp:Rating>5</xmp:Rating>
+   <MicrosoftPhoto:Rating>99</MicrosoftPhoto:Rating>
   </rdf:Description>
  </rdf:RDF>
 </x:xmpmeta>
@@ -181,8 +189,8 @@ function buildXmpApp1Segment(title: string, description: string, keywords: strin
 }
 
 /**
- * Embeds EXIF (Windows XP tags), IPTC IIM (8BIM), and XMP metadata into a JPEG buffer
- * Guaranteed to be visible in Windows Explorer Details tab, Adobe Photoshop, Bridge, Lightroom, and Microstock Portals!
+ * Embeds EXIF (Windows XP tags + 5-Star Rating), IPTC IIM (8BIM), and XMP metadata into a JPEG buffer
+ * Guaranteed to be visible in Windows Explorer Details tab (5 Stars Rating), Adobe Photoshop, Bridge, Lightroom, and Microstock Portals!
  */
 export function embedMetadataInJpeg(
   jpegBytes: Uint8Array,
@@ -199,12 +207,15 @@ export function embedMetadataInJpeg(
   const cleanDesc = (description || title || '').trim();
   const kwString = keywords.filter((k) => Boolean(k && k.trim())).join('; ');
 
-  // 1. Build comprehensive EXIF object with Windows XP tags and standard tags
+  // 1. Build comprehensive EXIF object with Windows XP tags, 5-Star Rating, and standard tags
   const exifObj: any = {
     '0th': {
       [piexif.ImageIFD.ImageDescription]: cleanTitle || 'Stock Photography Asset',
       [piexif.ImageIFD.Software]: 'SS SMART META 2 Contributor Pro',
       [piexif.ImageIFD.Artist]: 'Shamim Reza',
+      // Native 5-Star Rating for Windows Explorer Details & Adobe Bridge
+      [piexif.ImageIFD.Rating]: 5,
+      [piexif.ImageIFD.RatingPercent]: 99,
       // Windows Explorer Details tab native tags:
       [piexif.ImageIFD.XPTitle]: toUtf16LeBytes(cleanTitle),
       [piexif.ImageIFD.XPKeywords]: toUtf16LeBytes(kwString),
@@ -341,6 +352,8 @@ export function embedMetadataInPng(
     buildPngTextChunk('Description', description),
     buildPngTextChunk('Comment', description),
     buildPngTextChunk('Keywords', keywords.join(', ')),
+    buildPngTextChunk('Rating', '5'),
+    buildPngTextChunk('RatingPercent', '99'),
     buildPngTextChunk('Software', 'SS SMART META 2 Contributor Pro'),
     buildPngTextChunk('Author', 'Shamim Reza'),
   ];
@@ -361,8 +374,64 @@ export function embedMetadataInPng(
   return result;
 }
 
+function escapeXml(str: string): string {
+  return (str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 /**
- * Master metadata embedder: Handles both JPEG and PNG formats cleanly
+ * Embeds metadata into SVG vector file via standard XML metadata blocks + 5-Star Rating
+ */
+export function embedMetadataInSvg(
+  svgBytes: Uint8Array,
+  title: string,
+  description: string,
+  keywords: string[]
+): Uint8Array {
+  try {
+    const text = new TextDecoder('utf-8').decode(svgBytes);
+    if (!text.includes('<svg')) return svgBytes;
+
+    const metaBlock = `\n  <title>${escapeXml(title)}</title>\n  <desc>${escapeXml(description)}</desc>\n  <metadata>\n    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:MicrosoftPhoto="http://ns.microsoft.com/photo/1.0/">\n      <rdf:Description xmp:Rating="5" MicrosoftPhoto:Rating="99">\n        <dc:title>${escapeXml(title)}</dc:title>\n        <dc:description>${escapeXml(description)}</dc:description>\n        <dc:subject>\n          <rdf:Bag>\n            ${keywords.map((k) => `<rdf:li>${escapeXml(k)}</rdf:li>`).join('')}\n          </rdf:Bag>\n        </dc:subject>\n        <dc:creator>Shamim Reza</dc:creator>\n        <xmp:Rating>5</xmp:Rating>\n        <MicrosoftPhoto:Rating>99</MicrosoftPhoto:Rating>\n      </rdf:Description>\n    </rdf:RDF>\n  </metadata>\n`;
+
+    const updated = text.replace(/(<svg[^>]*>)/i, `$1${metaBlock}`);
+    return new TextEncoder().encode(updated);
+  } catch {
+    return svgBytes;
+  }
+}
+
+/**
+ * Embeds metadata into EPS (Encapsulated PostScript) vector file via standard DSC comments and Adobe XMP Packet with 5-Star Rating
+ */
+export function embedMetadataInEps(
+  epsBytes: Uint8Array,
+  title: string,
+  description: string,
+  keywords: string[]
+): Uint8Array {
+  try {
+    const text = new TextDecoder('latin1').decode(epsBytes);
+    if (!text.includes('%!PS-Adobe')) return epsBytes;
+
+    const cleanTitle = escapeXml(title.replace(/[\r\n]/g, ' '));
+    const cleanDesc = escapeXml(description.replace(/[\r\n]/g, ' '));
+    const kwXml = keywords.map((k) => `<rdf:li>${escapeXml(k.trim())}</rdf:li>`).join('');
+
+    const dscMeta = `\n%%Title: ${title.replace(/[\r\n]/g, ' ')}\n%%Subject: ${description.replace(/[\r\n]/g, ' ')}\n%%Keywords: ${keywords.join(', ')}\n%%Rating: 5\n%%RatingPercent: 99\n%%Creator: Shamim Reza (SS SMART META 2)\n%BeginPhotoshop: 3000\n%BeginXMP: <?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>\n<x:xmpmeta xmlns:x="adobe:ns:meta/">\n <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">\n  <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/" xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:MicrosoftPhoto="http://ns.microsoft.com/photo/1.0/" xmp:Rating="5" MicrosoftPhoto:Rating="99">\n   <dc:title><rdf:Alt><rdf:li xml:lang="x-default">${cleanTitle}</rdf:li></rdf:Alt></dc:title>\n   <dc:description><rdf:Alt><rdf:li xml:lang="x-default">${cleanDesc}</rdf:li></rdf:Alt></dc:description>\n   <dc:subject><rdf:Bag>${kwXml}</rdf:Bag></dc:subject>\n   <photoshop:Headline>${cleanTitle}</photoshop:Headline>\n   <photoshop:Urgency>5</photoshop:Urgency>\n   <xmp:Rating>5</xmp:Rating>\n   <MicrosoftPhoto:Rating>99</MicrosoftPhoto:Rating>\n  </rdf:Description>\n </rdf:RDF>\n</x:xmpmeta>\n<?xpacket end="w"?>\n%EndXMP\n`;
+    const updated = text.replace(/(%!PS-Adobe[^\r\n]*)/i, `$1${dscMeta}`);
+    return new TextEncoder().encode(updated);
+  } catch {
+    return epsBytes;
+  }
+}
+
+/**
+ * Master metadata embedder: Handles JPEG, PNG, SVG and EPS vector formats with ZERO loss in resolution or quality
  */
 export function embedMetadataInBytes(
   bytes: Uint8Array,
@@ -370,11 +439,21 @@ export function embedMetadataInBytes(
   description: string,
   keywords: string[]
 ): Uint8Array {
+  // JPEG: 0xFF 0xD8
   if (bytes.length > 2 && bytes[0] === 0xff && bytes[1] === 0xd8) {
     return embedMetadataInJpeg(bytes, title, description, keywords);
   }
+  // PNG: 0x89 0x50 0x4E 0x47
   if (bytes.length > 4 && bytes[0] === 0x89 && bytes[1] === 0x50) {
     return embedMetadataInPng(bytes, title, description, keywords);
+  }
+  // SVG vector
+  if (bytes.length > 4 && bytes[0] === 0x3c && (bytes[1] === 0x73 || bytes[1] === 0x3f)) {
+    return embedMetadataInSvg(bytes, title, description, keywords);
+  }
+  // EPS vector: %!PS-Adobe (0x25 0x21 0x50 0x53)
+  if (bytes.length > 4 && bytes[0] === 0x25 && bytes[1] === 0x21 && bytes[2] === 0x50 && bytes[3] === 0x53) {
+    return embedMetadataInEps(bytes, title, description, keywords);
   }
   return bytes;
 }
@@ -404,23 +483,31 @@ export async function embedDirectlyIntoItem(
 
     const targetName = titleToFilename(item.title || item.name, item.name);
     const blob = new Blob([updatedBytes.buffer as ArrayBuffer], {
-      type: item.format === 'PNG' ? 'image/png' : 'image/jpeg',
+      type: item.format === 'PNG' ? 'image/png' : item.format === 'EPS' ? 'application/postscript' : 'image/jpeg',
     });
 
     if (item.fileHandle && typeof item.fileHandle.createWritable === 'function') {
+      // If browser supports move, rename the file directly on disk!
+      if (typeof (item.fileHandle as any).move === 'function' && targetName !== item.fileHandle.name) {
+        try {
+          await (item.fileHandle as any).move(targetName);
+        } catch (mErr) {
+          console.warn('File handle move error:', mErr);
+        }
+      }
       const writable = await item.fileHandle.createWritable();
       await writable.write(blob);
       await writable.close();
       return {
         success: true,
-        message: `Updated "${targetName}" directly in-place with embedded EXIF, IPTC & XMP!`,
+        message: `Updated "${targetName}" directly in-place with 5-Star Rating, Title & Keywords!`,
         updatedName: targetName,
       };
     }
 
     return {
       success: true,
-      message: `Metadata prepared for "${targetName}".`,
+      message: `Metadata & 5-Star Rating prepared for "${targetName}".`,
       updatedName: targetName,
     };
   } catch (error: any) {

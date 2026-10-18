@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Box, X, Folder, ChevronDown } from 'lucide-react';
+import { Download, Box, X, Folder, ChevronDown, Archive, Loader2 } from 'lucide-react';
 
 interface CountersBarProps {
   successCount: number;
@@ -9,6 +9,8 @@ interface CountersBarProps {
   onFormatFilterChange: (format: string) => void;
   onDownloadAllCsv: () => void;
   onEmbedMetadata: () => void;
+  onDownloadZip?: () => void;
+  isZipping?: boolean;
   onClearAll: () => void;
   totalCount: number;
 }
@@ -21,6 +23,8 @@ export const CountersBar: React.FC<CountersBarProps> = ({
   onFormatFilterChange,
   onDownloadAllCsv,
   onEmbedMetadata,
+  onDownloadZip,
+  isZipping = false,
   onClearAll,
   totalCount,
 }) => {
@@ -44,10 +48,10 @@ export const CountersBar: React.FC<CountersBarProps> = ({
         </div>
 
         {/* Processing Counter */}
-        <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0b0f17] border-2 border-[#FF1A1A] text-xs font-black text-[#FF1A1A] shadow-[0_0_8px_rgba(255,0,0,0.25)]">
+        <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0b0f17] border-2 border-[#359FA0] text-xs font-black text-[#359FA0] shadow-[0_0_8px_rgba(53,159,160,0.25)]">
           <span
-            className={`w-2.5 h-2.5 rounded-full bg-[#FF1A1A] ${
-              processingCount > 0 ? 'animate-ping shadow-[0_0_8px_#FF0000]' : ''
+            className={`w-2.5 h-2.5 rounded-full bg-[#359FA0] ${
+              processingCount > 0 ? 'animate-ping shadow-[0_0_8px_#359FA0]' : ''
             }`}
           />
           <span>PROCESSING: {pad(processingCount)}</span>
@@ -86,7 +90,7 @@ export const CountersBar: React.FC<CountersBarProps> = ({
                   }}
                   className={`w-full text-left px-3.5 py-1.5 text-xs font-black transition-colors cursor-pointer ${
                     formatFilter === fmt
-                      ? 'bg-[#1e1015] text-[#FF1A1A]'
+                      ? 'bg-[#0d2223] text-[#359FA0]'
                       : 'text-white hover:bg-[#182030]'
                   }`}
                 >
@@ -102,15 +106,37 @@ export const CountersBar: React.FC<CountersBarProps> = ({
           type="button"
           onClick={onDownloadAllCsv}
           disabled={totalCount === 0}
-          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-black text-white transition-all cursor-pointer border-1.5 ${
+          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black text-white transition-all cursor-pointer border-1.5 ${
             totalCount === 0
               ? 'bg-[#1a2130] text-slate-500 border-[#2b374c] cursor-not-allowed'
-              : 'btn-red-gradient border-[#ff7777] shadow-[0_0_12px_rgba(255,0,0,0.4)] hover:shadow-[0_0_18px_rgba(255,0,0,0.6)]'
+              : 'btn-teal-gradient border-[#42B4B5] shadow-[0_0_12px_rgba(53,159,160,0.4)] hover:shadow-[0_0_18px_rgba(53,159,160,0.6)]'
           }`}
         >
           <Download className="w-3.5 h-3.5" />
           <span>Download All CSV</span>
         </button>
+
+        {/* Download All as ZIP (Images + Embedded Metadata + CSV) */}
+        {onDownloadZip && (
+          <button
+            type="button"
+            onClick={onDownloadZip}
+            disabled={totalCount === 0 || isZipping}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-black text-white transition-all cursor-pointer border-1.5 ${
+              totalCount === 0 || isZipping
+                ? 'bg-[#1a2130] text-slate-500 border-[#2b374c] cursor-not-allowed'
+                : 'bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 border-amber-400 text-white shadow-[0_0_14px_rgba(245,158,11,0.45)] hover:shadow-[0_0_20px_rgba(245,158,11,0.7)]'
+            }`}
+            title="Download all processed images in a single ZIP file with 100% original resolution, renamed filenames & embedded metadata"
+          >
+            {isZipping ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Archive className="w-3.5 h-3.5" />
+            )}
+            <span>{isZipping ? 'Zipping...' : 'Download All (.ZIP)'}</span>
+          </button>
+        )}
 
         {/* Save & Embed Images */}
         <button

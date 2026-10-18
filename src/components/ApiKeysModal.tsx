@@ -11,6 +11,8 @@ import {
   AlertCircle,
   Loader2,
   ExternalLink,
+  Cpu,
+  Sparkles,
 } from 'lucide-react';
 import { GeminiKey } from '../types';
 import {
@@ -18,6 +20,8 @@ import {
   validateApiKey,
   saveStoredKeys,
   testGeminiApiKey,
+  GEMINI_AVAILABLE_MODELS,
+  saveSelectedModel,
 } from '../utils/apiKeyManager';
 
 interface ApiKeysModalProps {
@@ -25,6 +29,8 @@ interface ApiKeysModalProps {
   onClose: () => void;
   storedKeys: GeminiKey[];
   onKeysUpdated: (keys: GeminiKey[]) => void;
+  selectedModel?: string;
+  onSelectModel?: (model: string) => void;
 }
 
 export const ApiKeysModal: React.FC<ApiKeysModalProps> = ({
@@ -32,6 +38,8 @@ export const ApiKeysModal: React.FC<ApiKeysModalProps> = ({
   onClose,
   storedKeys,
   onKeysUpdated,
+  selectedModel = 'gemini-3.8-flash',
+  onSelectModel,
 }) => {
   const [activeTab, setActiveTab] = useState<'gemini' | 'openrouter'>('gemini');
   const [inputKey, setInputKey] = useState('');
@@ -43,8 +51,17 @@ export const ApiKeysModal: React.FC<ApiKeysModalProps> = ({
   const [statusMessage, setStatusMessage] = useState<string>(
     storedKeys.length > 0 ? 'Connected' : 'Not Connected'
   );
+  const [currentModel, setCurrentModel] = useState<string>(selectedModel);
 
   if (!isOpen) return null;
+
+  const handleModelChange = (modelId: string) => {
+    setCurrentModel(modelId);
+    saveSelectedModel(modelId);
+    if (onSelectModel) {
+      onSelectModel(modelId);
+    }
+  };
 
   const handleSaveKey = () => {
     setInputError(null);
@@ -91,23 +108,30 @@ export const ApiKeysModal: React.FC<ApiKeysModalProps> = ({
     const result = await testGeminiApiKey(keyToTest);
     if (result.success) {
       setConnectionStatus('connected');
-      setStatusMessage('CONNECTED');
+      setStatusMessage('CONNECTED (Active & Working)');
     } else {
       setConnectionStatus('not_connected');
-      setStatusMessage('NOT CONNECTED');
+      setStatusMessage(result.error ? `NOT CONNECTED (${result.error.slice(0, 40)})` : 'NOT CONNECTED');
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 select-none">
-      <div className="bg-[#101522] border border-[#20293d] rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-4 select-none">
+      <div className="bg-[#101522] border-2 border-[#359FA0] rounded-2xl w-full max-w-3xl shadow-[0_0_35px_rgba(53,159,160,0.35)] overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[92vh]">
         {/* Modal Header */}
-        <div className="px-5 py-4 border-b border-[#1b2234] flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-[#1b2234] flex items-center justify-between bg-[#0b0f17]">
           <div className="flex items-center gap-2.5">
-            <Key className="w-5 h-5 text-[#FF1A1A]" />
-            <h2 className="text-base font-bold text-white tracking-wide">
-              API Secrets Management
-            </h2>
+            <div className="w-8 h-8 rounded-lg bg-[#359FA0]/15 border border-[#359FA0] flex items-center justify-center text-[#359FA0] shadow-[0_0_8px_rgba(53,159,160,0.4)]">
+              <Key className="w-4 h-4 text-[#359FA0]" />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-white tracking-wide">
+                API Secrets & Model Configuration
+              </h2>
+              <p className="text-[11px] text-slate-300 font-bold">
+                Configure your Gemini API Keys and choose your Vision & Metadata AI Model
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -119,21 +143,24 @@ export const ApiKeysModal: React.FC<ApiKeysModalProps> = ({
         </div>
 
         {/* Modal Provider Tabs */}
-        <div className="px-5 pt-4 pb-2 border-b border-[#1b2234] flex items-center gap-2 bg-[#0c1017]">
+        <div className="px-5 pt-3 pb-2 border-b border-[#1b2234] flex items-center gap-2 bg-[#0c1017]">
           {/* Gemini Tab */}
           <button
             type="button"
             onClick={() => setActiveTab('gemini')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'gemini'
-                ? 'bg-[#1e1015] border-2 border-[#FF0000] text-white shadow-[0_0_12px_rgba(255,0,0,0.4)]'
+                ? 'bg-[#0d2223] border-2 border-[#359FA0] text-white shadow-[0_0_12px_rgba(53,159,160,0.4)]'
                 : 'bg-[#101522] border border-[#20293d] text-slate-400 hover:text-slate-200'
             }`}
           >
-            <span className="w-4 h-4 rounded-full bg-[#FF0000] text-white flex items-center justify-center text-[10px] font-black">
+            <span className="w-4 h-4 rounded-full bg-[#359FA0] text-white flex items-center justify-center text-[10px] font-black">
               G
             </span>
-            <span>Gemini</span>
+            <span className="font-black">Google Gemini</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded-sm bg-[#359FA0]/20 text-[#42B4B5] font-black">
+              Active
+            </span>
           </button>
 
           {/* OpenRouter Tab (Under Maintenance) */}
@@ -142,7 +169,7 @@ export const ApiKeysModal: React.FC<ApiKeysModalProps> = ({
             onClick={() => setActiveTab('openrouter')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
               activeTab === 'openrouter'
-                ? 'bg-[#1e1015] border-2 border-[#FF0000] text-white'
+                ? 'bg-[#0d2223] border-2 border-[#359FA0] text-white'
                 : 'bg-[#101522] border-[#20293d] text-slate-400'
             }`}
           >
@@ -156,166 +183,217 @@ export const ApiKeysModal: React.FC<ApiKeysModalProps> = ({
 
         {/* Modal Body */}
         {activeTab === 'gemini' ? (
-          <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Left Column: CONFIGURATION */}
-            <div className="space-y-4">
-              <h3 className="text-xs font-black tracking-widest text-[#FF1A1A] drop-shadow-[0_0_6px_rgba(255,0,0,0.6)] uppercase">
-                CONFIGURATION
-              </h3>
-
-              <div>
-                <label className="block text-xs font-bold text-white mb-1.5">
-                  Add New API Key
-                </label>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type={showKey ? 'text' : 'password'}
-                      value={inputKey}
-                      onChange={(e) => {
-                        setInputKey(e.target.value);
-                        setInputError(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveKey();
-                      }}
-                      placeholder="AIza..."
-                      className={`w-full bg-[#0b0f17] border rounded-xl pl-3 pr-9 py-2 text-xs text-white placeholder-slate-400 font-bold focus:outline-hidden font-mono ${
-                        inputError ? 'border-rose-500' : 'border-[#20293d] focus:border-[#FF0000]'
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowKey(!showKey)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-white cursor-pointer"
-                      title={showKey ? 'Hide key' : 'Show key'}
-                    >
-                      {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleSaveKey}
-                    className="px-4 py-2 rounded-xl text-xs font-black text-white btn-red-gradient shadow-[0_0_10px_rgba(255,0,0,0.3)] cursor-pointer shrink-0"
-                  >
-                    Save
-                  </button>
+          <div className="p-5 overflow-y-auto space-y-5 flex-1">
+            {/* Top Section: SELECT MODEL (User Request: er kon figarer vitore model select korar option daw) */}
+            <div className="bg-[#0b0f17] border-2 border-[#222f46] rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-[#1b2538]">
+                <div className="flex items-center gap-2 text-white text-xs font-black">
+                  <Cpu className="w-4 h-4 text-[#359FA0]" />
+                  <span>SELECT GEMINI VISION & METADATA MODEL</span>
                 </div>
-
-                {inputError && (
-                  <p className="text-[11px] text-rose-400 mt-1 flex items-center gap-1 font-bold">
-                    <AlertCircle className="w-3 h-3" />
-                    <span>{inputError}</span>
-                  </p>
-                )}
+                <span className="text-[11px] text-[#42B4B5] font-mono font-bold bg-[#359FA0]/15 border border-[#359FA0]/50 px-2 py-0.5 rounded-md">
+                  Active: {currentModel}
+                </span>
               </div>
 
-              {/* Add Another Key Info / Action */}
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInputKey('');
-                    setInputError(null);
-                  }}
-                  className="flex items-center gap-1.5 text-xs font-black text-[#FF1A1A] hover:text-[#FF4D4D] transition-colors cursor-pointer"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  <span>+ Add Another Key</span>
-                </button>
-                <p className="text-[10px] text-slate-200 font-semibold mt-1 leading-relaxed">
-                  Support multiple keys! The queue automatically rotates 1-by-1 sequentially across all keys with rate-limit recovery.
-                </p>
-              </div>
-
-              {/* Get API Key from Google */}
-              <div className="pt-2">
-                <a
-                  href="https://aistudio.google.com/app/apikey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-[#FF0000]/70 text-xs font-black text-[#FF1A1A] bg-[#1a0f14] hover:bg-[#FF0000] hover:text-white transition-all shadow-[0_0_10px_rgba(255,0,0,0.2)] cursor-pointer"
-                >
-                  <KeyRound className="w-4 h-4" />
-                  <span>Get API Key from Google</span>
-                  <ExternalLink className="w-3 h-3 ml-1 opacity-70" />
-                </a>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                {GEMINI_AVAILABLE_MODELS.map((m) => {
+                  const isSelected = currentModel === m.id;
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => handleModelChange(m.id)}
+                      className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                        isSelected
+                          ? 'bg-[#0d2223] border-[#359FA0] shadow-[0_0_12px_rgba(53,159,160,0.35)]'
+                          : 'bg-[#101522] border-[#20293d] hover:border-[#359FA0]/60 text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-1 mb-1">
+                        <span className={`text-xs font-black ${isSelected ? 'text-[#359FA0]' : 'text-white'}`}>
+                          {m.name}
+                        </span>
+                        <span
+                          className={`text-[9px] px-1.5 py-0.5 rounded-xs font-black ${
+                            isSelected
+                              ? 'bg-[#359FA0] text-white shadow-xs'
+                              : 'bg-[#1b2538] text-slate-300'
+                          }`}
+                        >
+                          {m.tag}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-300 font-medium leading-tight">
+                        {m.desc}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Right Column: STORED KEYS */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black tracking-widest text-white uppercase">
-                  STORED KEYS
+            {/* Bottom Grid: API Keys Input & Stored Keys */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Left Column: CONFIGURATION */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black tracking-widest text-[#359FA0] uppercase drop-shadow-[0_0_6px_rgba(53,159,160,0.5)]">
+                  ADD NEW API KEY
                 </h3>
-                {storedKeys.length > 0 && (
-                  <span className="text-[10px] text-[#FF1A1A] font-black">
-                    {storedKeys.length} {storedKeys.length === 1 ? 'Key' : 'Keys'} Available
-                  </span>
-                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1.5">
+                    Google Gemini API Key
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type={showKey ? 'text' : 'password'}
+                        value={inputKey}
+                        onChange={(e) => {
+                          setInputKey(e.target.value);
+                          setInputError(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveKey();
+                        }}
+                        placeholder="AIzaSy..."
+                        className={`w-full bg-[#0b0f17] border rounded-xl pl-3 pr-9 py-2 text-xs text-white placeholder-slate-400 font-bold focus:outline-hidden font-mono ${
+                          inputError ? 'border-rose-500' : 'border-[#20293d] focus:border-[#359FA0]'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowKey(!showKey)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-white cursor-pointer"
+                        title={showKey ? 'Hide key' : 'Show key'}
+                      >
+                        {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveKey}
+                      className="px-4 py-2 rounded-xl text-xs font-black text-white btn-teal-gradient shadow-[0_0_10px_rgba(53,159,160,0.3)] cursor-pointer shrink-0"
+                    >
+                      Save Key
+                    </button>
+                  </div>
+
+                  {inputError && (
+                    <p className="text-[11px] text-rose-400 mt-1 flex items-center gap-1 font-bold">
+                      <AlertCircle className="w-3 h-3" />
+                      <span>{inputError}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Add Another Key Info / Action */}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInputKey('');
+                      setInputError(null);
+                    }}
+                    className="flex items-center gap-1.5 text-xs font-black text-[#359FA0] hover:text-[#42B4B5] transition-colors cursor-pointer"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>+ Add Another Key</span>
+                  </button>
+                  <p className="text-[10px] text-slate-300 font-semibold mt-1 leading-relaxed">
+                    Multiple keys are rotated sequentially. If one hits rate limits, the queue seamlessly switches to the next available key.
+                  </p>
+                </div>
+
+                {/* Get API Key from Google */}
+                <div className="pt-1">
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-[#359FA0]/70 text-xs font-black text-[#359FA0] bg-[#0d2223] hover:bg-[#359FA0] hover:text-white transition-all shadow-[0_0_10px_rgba(53,159,160,0.2)] cursor-pointer"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                    <span>Get API Key from Google AI Studio</span>
+                    <ExternalLink className="w-3 h-3 ml-1 opacity-70" />
+                  </a>
+                </div>
               </div>
 
-              {/* Stored Keys Container */}
-              <div className="bg-[#0b0f17] border border-[#20293d] rounded-xl p-3 min-h-[190px] max-h-[220px] overflow-y-auto flex flex-col justify-center">
-                {storedKeys.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center text-center p-4">
-                    <div className="w-10 h-10 rounded-full bg-[#151c2a] flex items-center justify-center text-slate-300 mb-2">
-                      <Key className="w-5 h-5 line-through opacity-70" />
-                    </div>
-                    <span className="text-xs font-black text-white mb-1">
-                      No Key Connected
+              {/* Right Column: STORED KEYS */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black tracking-widest text-white uppercase">
+                    STORED KEYS ({storedKeys.length})
+                  </h3>
+                  {storedKeys.length > 0 && (
+                    <span className="text-[10px] text-[#359FA0] font-black">
+                      {storedKeys.length} {storedKeys.length === 1 ? 'Key' : 'Keys'} Available
                     </span>
-                    <p className="text-[11px] text-slate-200 font-bold max-w-[200px]">
-                      Enter your Google Gemini API key and click Save to connect
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 w-full my-auto">
-                    {storedKeys.map((keyItem, index) => {
-                      const isRateLimited =
-                        keyItem.rateLimitedUntil && keyItem.rateLimitedUntil > Date.now();
-                      return (
-                        <div
-                          key={keyItem.id}
-                          className="bg-[#101522] border border-[#20293d] rounded-lg p-2.5 flex items-center justify-between text-xs"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-md bg-[#1d1217] border border-[#FF0000]/60 text-[#FF1A1A] flex items-center justify-center text-[10px] font-black">
-                              {index + 1}
-                            </span>
-                            <div>
-                              <div className="font-mono text-white font-black">
-                                {keyItem.masked}
-                              </div>
-                              <div className="text-[9px] text-slate-300 flex items-center gap-1.5 mt-0.5">
-                                {isRateLimited ? (
-                                  <span className="text-amber-400 font-bold">
-                                    Cooldown active
-                                  </span>
-                                ) : (
-                                  <span className="text-emerald-400 font-bold">
-                                    Ready in rotation
-                                  </span>
-                                )}
+                  )}
+                </div>
+
+                {/* Stored Keys Container */}
+                <div className="bg-[#0b0f17] border border-[#20293d] rounded-xl p-3 min-h-[170px] max-h-[220px] overflow-y-auto flex flex-col justify-center">
+                  {storedKeys.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center text-center p-4">
+                      <div className="w-10 h-10 rounded-full bg-[#151c2a] flex items-center justify-center text-slate-300 mb-2">
+                        <Key className="w-5 h-5 opacity-70" />
+                      </div>
+                      <span className="text-xs font-black text-white mb-1">
+                        No User Key Added
+                      </span>
+                      <p className="text-[11px] text-slate-300 font-bold max-w-[200px]">
+                        Add your key above or use the system pre-configured Gemini key.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 w-full my-auto">
+                      {storedKeys.map((keyItem, index) => {
+                        const isRateLimited =
+                          keyItem.rateLimitedUntil && keyItem.rateLimitedUntil > Date.now();
+                        return (
+                          <div
+                            key={keyItem.id}
+                            className="bg-[#101522] border border-[#20293d] rounded-lg p-2.5 flex items-center justify-between text-xs"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-md bg-[#0d2223] border border-[#359FA0]/60 text-[#359FA0] flex items-center justify-center text-[10px] font-black">
+                                {index + 1}
+                              </span>
+                              <div>
+                                <div className="font-mono text-white font-black">
+                                  {keyItem.masked}
+                                </div>
+                                <div className="text-[9px] text-slate-300 flex items-center gap-1.5 mt-0.5">
+                                  {isRateLimited ? (
+                                    <span className="text-amber-400 font-bold">
+                                      Cooldown active
+                                    </span>
+                                  ) : (
+                                    <span className="text-emerald-400 font-bold">
+                                      Ready in rotation
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteKey(keyItem.id)}
-                            className="p-1 rounded-md text-slate-400 hover:text-rose-400 hover:bg-[#1f1015] transition-colors cursor-pointer"
-                            title="Remove Key"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteKey(keyItem.id)}
+                              className="p-1 rounded-md text-slate-400 hover:text-rose-400 hover:bg-[#1f1015] transition-colors cursor-pointer"
+                              title="Remove Key"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -366,7 +444,7 @@ export const ApiKeysModal: React.FC<ApiKeysModalProps> = ({
               type="button"
               onClick={handleTestConnection}
               disabled={connectionStatus === 'testing'}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#101522] border border-[#20293d] hover:border-slate-400 text-white transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#101522] border border-[#20293d] hover:border-[#359FA0] text-white transition-colors cursor-pointer"
             >
               Test Connection
             </button>
@@ -374,7 +452,7 @@ export const ApiKeysModal: React.FC<ApiKeysModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 rounded-xl text-xs font-black text-white btn-red-gradient shadow-[0_0_10px_rgba(255,0,0,0.35)] cursor-pointer"
+              className="px-6 py-2 rounded-xl text-xs font-black text-white btn-teal-gradient shadow-[0_0_10px_rgba(53,159,160,0.35)] cursor-pointer"
             >
               Done
             </button>

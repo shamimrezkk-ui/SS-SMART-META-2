@@ -8,11 +8,11 @@ export function titleToFilename(title: string, currentFilename: string): string 
     return currentFilename || 'stock_asset.jpg';
   }
 
-  // Extract extension from currentFilename
+  // Extract extension from currentFilename (preserve exact format: mp4, webm, mov, eps, svg, png, jpg, etc.)
   let ext = 'jpg';
   if (currentFilename && currentFilename.includes('.')) {
     const rawExt = currentFilename.split('.').pop()?.toLowerCase();
-    if (rawExt && ['jpg', 'jpeg', 'png', 'webp', 'tiff', 'svg'].includes(rawExt)) {
+    if (rawExt && rawExt.length >= 2 && rawExt.length <= 5) {
       ext = rawExt;
     }
   }

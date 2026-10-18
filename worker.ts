@@ -10,18 +10,19 @@ export interface Env {
 
 function extractCleanSubject(filename: string): string {
   const base = filename.replace(/\.[^/.]+$/, '');
-  const cleaned = base
-    .replace(/[_-]+/g, ' ')
-    .replace(/[0-9]{4,}/g, '')
-    .replace(/\b(img|dsc|photo|image|pic|asset|sample|file)\b/gi, '')
+  const stripped = base
+    .replace(/[\(\)\[\]\{\}\-_0-9]/g, ' ')
+    .replace(/\b(img|dsc|photo|image|pic|asset|sample|file|untitled)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
-  if (!cleaned || cleaned.length < 3 || cleaned.match(/^[0-9]+$/)) {
-    return 'Wildlife Nature and Landscape';
+  const lettersOnly = stripped.replace(/[^a-zA-Z]/g, '');
+  if (lettersOnly.length < 3) {
+    return 'Majestic Wildlife Animal in Natural Habitat';
   }
-  return cleaned
+  return stripped
     .split(' ')
+    .filter((w) => w.length > 0)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ');
 }

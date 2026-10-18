@@ -1,6 +1,29 @@
 import { GeminiKey } from '../types';
 
 const STORAGE_KEY = 'thikana_gemini_api_keys';
+const MODEL_STORAGE_KEY = 'thikana_gemini_selected_model';
+
+export const GEMINI_AVAILABLE_MODELS = [
+  { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', tag: 'Recommended', desc: 'Ultra Fast Vision & 100% Accurate Stock Metadata' },
+  { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', tag: 'High Speed', desc: 'Lightweight Multimodal & Instant Generation' },
+  { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', tag: 'Fast Lite', desc: 'Fast Multimodal Flash Lite' },
+  { id: 'gemini-flash-latest', name: 'Gemini Flash Latest', tag: 'Stable', desc: 'Latest Stable Flash Model' },
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', tag: 'Pro Vision', desc: 'Deep Reasoning for complex artworks & photography' },
+];
+
+export function loadSelectedModel(): string {
+  try {
+    const m = localStorage.getItem(MODEL_STORAGE_KEY);
+    if (m && m.trim()) return m.trim();
+  } catch {}
+  return 'gemini-3.8-flash';
+}
+
+export function saveSelectedModel(model: string): void {
+  try {
+    localStorage.setItem(MODEL_STORAGE_KEY, model);
+  } catch {}
+}
 
 export function maskKey(key: string): string {
   if (!key) return '';

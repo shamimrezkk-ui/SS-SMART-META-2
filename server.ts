@@ -1,6 +1,8 @@
 import express from 'express';
 import type { Request, Response } from 'express';
 import path from 'path';
+import fs from 'fs';
+import { execSync } from 'child_process';
 import dotenv from 'dotenv';
 import { GoogleGenAI, Type } from '@google/genai';
 
@@ -17,22 +19,92 @@ app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', app: 'SS SMART META 2', serverTime: new Date().toISOString() });
 });
 
+// High-Fidelity Native Ghostscript & ImageMagick EPS Vector Preview Renderer
+app.post('/api/render-eps', express.raw({ type: '*/*', limit: '60mb' }), async (req: Request, res: Response) => {
+  try {
+    const buffer = req.body;
+    if (!buffer || buffer.length === 0) {
+      return res.status(400).json({ error: 'No EPS data provided' });
+    }
+
+    const tempId = `eps_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const tempInput = path.join('/tmp', `${tempId}.eps`);
+    const tempOutput = path.join('/tmp', `${tempId}.png`);
+
+    fs.writeFileSync(tempInput, buffer);
+
+    let rendered = false;
+
+    // 1. Ghostscript with precise -dEPSCrop (renders exact bounding box & sharp anti-aliasing)
+    try {
+      execSync(
+        `gs -dSAFER -dBATCH -dNOPAUSE -dEPSCrop -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r150 -sOutputFile="${tempOutput}" "${tempInput}"`,
+        { timeout: 8000 }
+      );
+      if (fs.existsSync(tempOutput) && fs.statSync(tempOutput).size > 100) {
+        rendered = true;
+      }
+    } catch {
+      // 2. Fallback: Ghostscript standard page fit
+      try {
+        execSync(
+          `gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r150 -sOutputFile="${tempOutput}" "${tempInput}"`,
+          { timeout: 8000 }
+        );
+        if (fs.existsSync(tempOutput) && fs.statSync(tempOutput).size > 100) {
+          rendered = true;
+        }
+      } catch {
+        // 3. Fallback: ImageMagick convert
+        try {
+          execSync(`convert -density 150 -background white -flatten "${tempInput}" "${tempOutput}"`, {
+            timeout: 8000,
+          });
+          if (fs.existsSync(tempOutput) && fs.statSync(tempOutput).size > 100) {
+            rendered = true;
+          }
+        } catch {}
+      }
+    }
+
+    if (rendered && fs.existsSync(tempOutput)) {
+      const pngBuffer = fs.readFileSync(tempOutput);
+      const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
+
+      try {
+        fs.unlinkSync(tempInput);
+        fs.unlinkSync(tempOutput);
+      } catch {}
+
+      return res.json({ success: true, previewUrl: base64 });
+    } else {
+      try {
+        if (fs.existsSync(tempInput)) fs.unlinkSync(tempInput);
+        if (fs.existsSync(tempOutput)) fs.unlinkSync(tempOutput);
+      } catch {}
+      return res.status(500).json({ error: 'Failed to rasterize EPS' });
+    }
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'EPS conversion error' });
+  }
+});
+
 // Helper to sanitize subject name from filename
 function extractCleanSubject(filename: string): string {
   const base = filename.replace(/\.[^/.]+$/, '');
-  const cleaned = base
-    .replace(/[_-]+/g, ' ')
-    .replace(/[0-9]{4,}/g, '')
-    .replace(/\b(img|dsc|photo|image|pic|asset|sample|file)\b/gi, '')
+  const stripped = base
+    .replace(/[\(\)\[\]\{\}\-_0-9]/g, ' ')
+    .replace(/\b(img|dsc|photo|image|pic|asset|sample|file|untitled|vector|eps|svg|png|jpg|jpeg)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
-  if (!cleaned || cleaned.length < 3 || cleaned.match(/^[0-9]+$/)) {
-    return 'Wildlife Nature and Landscape';
+  const words = stripped.split(' ').filter((w) => w.length > 0);
+  if (words.length === 0) {
+    return 'Minimalist Graphic Design Element';
   }
+
   // Capitalize words
-  return cleaned
-    .split(' ')
+  return words
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ');
 }
@@ -68,11 +140,22 @@ function generateInstantMetadata(opts: {
   ];
 
   // Domain-specific keyword pools based on subject
-  const lower = subject.toLowerCase() + ' ' + (opts.customPrompt || '').toLowerCase();
+  const lower = (subject + ' ' + opts.filename + ' ' + (opts.customPrompt || '')).toLowerCase();
   let domainTags: string[] = [];
   let category = 'General';
 
-  if (lower.match(/lion|animal|tiger|dog|cat|bird|wildlife|safari|nature|fauna|mammal|zoo/)) {
+  // 1. Coding & Software Development / Technology
+  if (lower.match(/\b(coding|code|developer|programmer|programming|software|html|css|javascript|python|symbol|bracket|brackets|slash|syntax|algorithm|terminal|tech|technology|computer|digital|cyber|network|internet|web|api|data|screen)\b/i)) {
+    category = 'Technology';
+    domainTags = [
+      'coding', 'programming', 'developer', 'code', 'software', 'technology', 'symbol',
+      'brackets', 'curly-brackets', 'curly-braces', 'slash', 'syntax', 'web-development',
+      'html', 'css', 'javascript', 'minimalist', 'black', 'white-background', 'icon',
+      'graphic', 'vector', 'clean', 'modern', 'emblem', 'sign', 'concept', 'computer',
+      'digital', 'element', 'isolated', 'app', 'interface', 'ui', 'design', 'template',
+      'software-engineering', 'backend', 'frontend', 'computing', 'script', 'algorithm', 'coder'
+    ];
+  } else if (lower.match(/\b(lion|animal|animals|tiger|dog|cat|bird|birds|wildlife|safari|nature|fauna|mammal|zoo|elephant|horse|fish|insect|butterfly|bear|wolf|fox)\b/i)) {
     category = 'Animals';
     domainTags = [
       'wildlife', 'animal', 'safari', 'mammal', 'predator', 'savannah', 'nature',
@@ -80,7 +163,7 @@ function generateInstantMetadata(opts: {
       'hunter', 'mane', 'strength', 'fur', 'endangered', 'national-park', 'serengeti',
       'sunlight', 'grassland', 'organic', 'creature', 'beast', 'zoology', 'biodiversity'
     ];
-  } else if (lower.match(/sunset|mountain|landscape|ocean|sea|beach|forest|lake|sky|scenery/)) {
+  } else if (lower.match(/\b(sunset|sunrise|mountain|mountains|landscape|ocean|sea|beach|forest|lake|river|sky|clouds|scenery|scenic|park|waterfall|desert)\b/i)) {
     category = 'Landscapes';
     domainTags = [
       'landscape', 'nature', 'scenic', 'sunset', 'sky', 'outdoor', 'mountain',
@@ -88,33 +171,33 @@ function generateInstantMetadata(opts: {
       'panoramic', 'tourism', 'environment', 'scenery', 'tranquil', 'peaceful', 'clouds',
       'majestic', 'wilderness', 'destination', 'reflection', 'wilderness', 'natural'
     ];
-  } else if (lower.match(/person|people|man|woman|girl|portrait|model|face|smile|team|worker/)) {
+  } else if (lower.match(/\b(person|people|man|woman|women|men|girl|boy|child|kid|portrait|model|face|smile|team|worker|doctor|nurse|businessperson)\b/i)) {
     category = 'People';
     domainTags = [
       'people', 'portrait', 'person', 'lifestyle', 'adult', 'happy', 'model',
-      'cheerful', 'attractive', 'expression', 'caucasian', 'young', 'looking', 'smiling',
+      'cheerful', 'attractive', 'expression', 'young', 'looking', 'smiling',
       'one-person', 'face', 'confidence', 'pose', 'professional', 'emotion', 'standing'
     ];
-  } else if (lower.match(/tech|computer|data|digital|cyber|code|ai|network|screen|internet/)) {
-    category = 'Technology';
-    domainTags = [
-      'technology', 'digital', 'data', 'future', 'cyber', 'network', 'connection',
-      'internet', 'innovation', 'virtual', 'intelligence', 'code', 'information',
-      'concept', 'communication', 'futuristic', 'circuit', 'software', 'cloud', 'system'
-    ];
-  } else if (lower.match(/food|coffee|drink|fruit|vegetable|meal|dish|cooking|kitchen|dessert/)) {
+  } else if (lower.match(/\b(food|drink|coffee|tea|fruit|fruits|vegetable|vegetables|meal|dish|cooking|kitchen|dessert|cake|bread|breakfast|dinner|lunch|restaurant)\b/i)) {
     category = 'Food & Drink';
     domainTags = [
       'food', 'delicious', 'gourmet', 'fresh', 'healthy', 'ingredient', 'cuisine',
       'meal', 'nutrition', 'tasty', 'snack', 'eating', 'organic', 'diet', 'homemade',
       'culinary', 'plate', 'kitchen', 'restaurant', 'sweet', 'vegetable', 'fruit'
     ];
-  } else {
+  } else if (lower.match(/\b(business|finance|corporate|money|currency|investment|stock|market|office|banking|chart|graph|economic|meeting|professional)\b/i)) {
     category = 'Business';
     domainTags = [
       'business', 'corporate', 'office', 'finance', 'success', 'strategy', 'marketing',
       'investment', 'professional', 'work', 'workplace', 'growth', 'concept', 'management',
       'leadership', 'teamwork', 'financial', 'executive', 'commercial', 'economy'
+    ];
+  } else {
+    category = 'Design & Graphic Elements';
+    domainTags = [
+      'design', 'graphic', 'vector', 'illustration', 'element', 'symbol', 'icon',
+      'minimalist', 'modern', 'clean', 'background', 'isolated', 'white', 'template',
+      'creative', 'art', 'concept', 'digital', 'composition', 'commercial', 'scalable'
     ];
   }
 
@@ -133,14 +216,32 @@ function generateInstantMetadata(opts: {
     finalKeywords = finalKeywords.map((k) => k.replace(/[-\s]+/g, ''));
   }
 
+  const isVideo = Boolean(opts.filename?.match(/\.(mp4|webm|mov)$/i)) || Boolean((opts as any).isVideo);
+  const isVector = Boolean(opts.filename?.match(/\.(svg|eps|ai)$/i)) || Boolean((opts as any).isVector);
+
   // Clean commercial Title
-  let title = `${subject} in Natural Outdoor Environment, Professional Stock Photography Composition`;
-  if (lower.match(/lion|animal|tiger|dog|cat|bird|wildlife|safari|nature|fauna|mammal|zoo/)) {
-    title = `${subject} in Natural Habitat, Majestic Wildlife Animal Photography in Outdoor Setting`;
-  } else if (lower.match(/sunset|mountain|landscape|ocean|sea|beach|forest|lake|sky|scenery/)) {
+  let title = isVector
+    ? `${subject} Scalable Vector Graphic, Clean Modern Stock Illustration`
+    : `${subject}, Professional Stock Photography Composition`;
+
+  if (category === 'Technology') {
+    title = isVector
+      ? `${subject} Vector Graphic, Scalable Programming Symbol Illustration`
+      : `${subject}, Technology and Software Concept`;
+  } else if (category === 'Animals') {
+    title = isVideo
+      ? `${subject} in Natural Habitat, Majestic Wildlife Cinematic Footage in Outdoor Setting`
+      : isVector
+      ? `${subject} Vector Graphic, Scalable Wildlife Animal Illustration`
+      : `${subject} in Natural Habitat, Majestic Wildlife Animal Photography in Outdoor Setting`;
+  } else if (category === 'Landscapes') {
     title = `Scenic ${subject} Panoramic View, Beautiful Nature Landscape in Golden Hour Lighting`;
-  } else if (lower.match(/person|people|man|woman|girl|portrait|model|face|smile|team|worker/)) {
+  } else if (category === 'People') {
     title = `Portrait of ${subject}, Authentic Lifestyle and Professional Studio Photography`;
+  } else if (category === 'Food & Drink') {
+    title = `Fresh Delicious ${subject}, Gourmet Culinary Preparation on Table`;
+  } else if (category === 'Business') {
+    title = `${subject} Corporate Concept, Professional Business Strategy and Financial Growth`;
   }
 
   if (opts.customPrompt && opts.customPrompt.trim().length > 0) {
@@ -148,7 +249,11 @@ function generateInstantMetadata(opts: {
   }
 
   // Construct detailed description
-  let description = `Professional commercial stock asset featuring ${subject.toLowerCase()}. Captured with authentic lighting, realistic depth of field, and balanced composition for creative editorial and advertising use.`;
+  let description = isVideo
+    ? `High-definition commercial stock video footage featuring ${subject.toLowerCase()} in motion. Captured with smooth camera stabilization, authentic natural lighting, and cinematic depth of field for professional broadcasting and creative video production.`
+    : isVector
+    ? `High quality scalable commercial vector illustration featuring ${subject.toLowerCase()}. Crafted with clean anchor points, editable paths, and vibrant microstock-compliant colors for print and digital design.`
+    : `Professional commercial stock asset featuring ${subject.toLowerCase()}. Captured with authentic lighting, realistic depth of field, and balanced composition for creative editorial and advertising use.`;
 
   if (opts.descriptionMin && description.length < opts.descriptionMin) {
     description += ` Optimized specifically for professional agency requirements on ${opts.platform || 'Microstock'} platforms worldwide.`;
@@ -238,16 +343,36 @@ app.post('/api/gemini/test', async (req: Request, res: Response) => {
       },
     });
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: 'Ping test. Reply with word OK.',
-      config: {
-        maxOutputTokens: 5,
-        temperature: 0.1,
-      },
-    });
+    let success = false;
+    let lastError = '';
+    const TEST_MODELS = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-3.8-flash'];
 
-    if (response && response.text) {
+    for (const model of TEST_MODELS) {
+      try {
+        const response = await Promise.race([
+          ai.models.generateContent({
+            model: model,
+            contents: 'Ping test. Reply with word OK.',
+            config: {
+              maxOutputTokens: 5,
+              temperature: 0.1,
+            },
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`Timeout with ${model}`)), 8000)
+          ),
+        ]);
+
+        if (response && response.text) {
+          success = true;
+          break;
+        }
+      } catch (err: any) {
+        lastError = err?.message || 'Connection failed';
+      }
+    }
+
+    if (success) {
       res.json({
         success: true,
         message: 'CONNECTED',
@@ -256,7 +381,7 @@ app.post('/api/gemini/test', async (req: Request, res: Response) => {
       res.json({
         success: false,
         message: 'NOT CONNECTED',
-        error: 'Empty response from model',
+        error: lastError || 'Failed to connect to Gemini API',
       });
     }
   } catch (error: any) {
@@ -287,17 +412,21 @@ app.post('/api/gemini/generate-metadata', async (req: Request, res: Response) =>
     silhouette = false,
     singleWordKeywords = true,
     apiKey,
+    selectedModel,
   } = req.body;
 
   const keyToUse = apiKey?.trim() || process.env.GEMINI_API_KEY;
 
-  // If Gemini API Key is available, attempt real AI generation
-  if (keyToUse && imageBase64 && imageBase64.length > 50) {
+  // If Gemini API Key is available, attempt real AI generation (Multimodal if image provided, Text if text-only)
+  if (keyToUse) {
     try {
-      const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '').replace(/\s+/g, '');
+      const cleanBase64 = imageBase64
+        ? imageBase64.replace(/^data:[a-zA-Z0-9\/-]+;base64,/, '').replace(/\s+/g, '')
+        : '';
       let cleanMime = (mimeType || 'image/jpeg').toLowerCase();
-      if (cleanMime === 'image/jpg') cleanMime = 'image/jpeg';
-      if (!cleanMime.startsWith('image/')) cleanMime = 'image/jpeg';
+      if (cleanMime.includes('png')) cleanMime = 'image/png';
+      else if (cleanMime.includes('webp')) cleanMime = 'image/webp';
+      else cleanMime = 'image/jpeg';
 
       const ai = new GoogleGenAI({
         apiKey: keyToUse,
@@ -308,47 +437,86 @@ app.post('/api/gemini/generate-metadata', async (req: Request, res: Response) =>
         },
       });
 
+      const isVideoAsset = Boolean(filename?.match(/\.(mp4|webm|mov)$/i)) || Boolean(cleanMime?.startsWith('video/'));
+      const isVectorAsset = Boolean(filename?.match(/\.(svg|eps|ai)$/i));
+
       const systemPrompt = `You are an elite, world-class microstock contributor and metadata specialist for ${platform}, Adobe Stock, Shutterstock, Getty Images, and Freepik.
-CRITICAL INSTRUCTION: Inspect the VISUAL CONTENT of this image with supreme accuracy. Look at what is physically shown: the exact subject (e.g. animal species/breed, human model, landscape, architecture, vehicle, food, object), the pose/action, surrounding environment/habitat, lighting (e.g. golden hour, daylight, sunset, studio), colors, and composition.
+CRITICAL VISION DIRECTIVE:
+1. Inspect the ACTUAL VISUAL CONTENT shown in this asset with supreme 100% precision.
+2. DO NOT RELY ON OR GUESS FROM THE FILENAME. If the filename is arbitrary, code, or mismatched, base 100% of your output purely on what is physically depicted in the visual artwork or photograph.
+3. If this is a coding or tech symbol (e.g. curly brackets, slash, tag, code syntax, tech icon), describe it strictly as programming syntax, web development, coding iconography, and software engineering.
+4. If this is an animal, identify the exact species. If a landscape, identify the topography and lighting. If a person, describe their action, lifestyle, and emotion.
+5. Title must be 12 to 22 clear, natural words matching the visual scene.
+6. Generate 40 to 49 top-ranking, highly relevant microstock tags with zero irrelevant spam.
+
+${
+  isVideoAsset
+    ? `CRITICAL MEDIA TYPE: THIS IS A VIDEO FOOTAGE ASSET.
+- In TITLE & DESCRIPTION: Treat this as commercial video footage. Use terms like "Cinematic Video Footage", "Motion Clip", "Action Sequence", "4K Video Clip".
+- NEVER use words like "Photography", "Photo", "Still", or "Picture" in the Title or Description!
+- Include video-specific keywords: video, footage, clip, motion, cinematic, 4k, broll, realtime, slow-motion.`
+    : isVectorAsset
+    ? `CRITICAL MEDIA TYPE: THIS IS A VECTOR GRAPHIC ASSET.
+- In TITLE & DESCRIPTION: Treat this as vector artwork. Use terms like "Vector Illustration", "Scalable Vector Graphic", "Design Element", "Clipart".
+- NEVER use words like "Photography" or "Photo"!
+- Include vector keywords: vector, illustration, graphic, svg, eps, clipart, scalable, editable.`
+    : `CRITICAL MEDIA TYPE: THIS IS A COMMERCIAL PHOTOGRAPHY ASSET.`
+}
 
 REQUIREMENTS:
 1. TITLE:
-- Craft an enticing, professional, natural commercial stock title (12 to 22 words).
-- Example for a lion photo: "Male Lion Walking in African Savanna, Majestic Wild Animal Portrait in Natural Habitat, Safari Wildlife Photography".
-- NEVER include spam words or irrelevant filler phrases like "Isolated on Studio Background" unless the image actually has a pure white isolated studio background!
-- NEVER include nonsense filler phrases like "High Quality Editorial Commercial Design Asset Advertising Graphic Concept Modern Style Visual Banner".
+- Craft an enticing, professional, natural commercial stock title (12 to 22 words) strictly matching what is visible in the artwork.
+- NEVER include spam words or irrelevant filler phrases.
 
 2. DESCRIPTION:
 - Write 2-3 clean, natural, sales-oriented sentences detailing the actual scene, subject, lighting, and environment for potential stock buyers.
 
 3. KEYWORDS:
-- Generate 40 to 49 relevant, top-ranking microstock keywords specifically derived from what is physically visible in the image.
-- Include: primary subject name, species, synonyms, actions, environment, location/habitat, time of day/lighting, mood, concepts.
-- NEVER include irrelevant categories (do NOT include business/finance tags like "leadership", "corporate", "teamwork" for animal/nature photos; do NOT include "png", "isolated" for outdoor scenes).
+- Generate 40 to 49 relevant, top-ranking microstock keywords specifically derived from what is physically visible.
+- Include: primary subject name, synonyms, style, usage concepts.
+- NEVER include irrelevant categories (do NOT include animals/nature tags for coding/tech icons; do NOT include business/finance tags for animal photos).
 
 4. CATEGORY:
-- The single best matching stock category (e.g. Animals, Nature, Landscapes, People, Food & Drink, Technology, Business, Architecture).`;
+- The single best matching stock category (e.g. Technology, Animals, Nature, Landscapes, People, Food & Drink, Business, Architecture, Design & Graphic Elements).`;
+
+      const hasValidImage = Boolean(cleanBase64 && cleanBase64.length > 100);
+
+      const contents = hasValidImage
+        ? [
+            {
+              inlineData: {
+                mimeType: cleanMime,
+                data: cleanBase64,
+              },
+            },
+            {
+              text: `CRITICAL VISION DIRECTIVE: Inspect this visual image with 100% precision. Look directly at what is depicted in the artwork or photo. Accurately identify the exact subject, visual elements, style, composition, colors, and commercial context. Generate professional microstock JSON metadata (title, description, keywords, category) that strictly and faithfully describes what is visually seen in the image. Do NOT add irrelevant tags or guess from filenames.${customPrompt ? ` Additional instructions: ${customPrompt}` : ''}`,
+            },
+          ]
+        : [
+            {
+              text: `Analyze this stock asset with filename "${filename}" (${isVectorAsset ? 'Vector Graphic' : isVideoAsset ? 'Video Clip' : 'Commercial Photo'}).${customPrompt ? ` Additional user prompt: ${customPrompt}` : ''} Output high-ranking microstock JSON metadata strictly matching the subject.`,
+            },
+          ];
 
       let response: any = null;
       let lastErr: any = null;
-      const CANDIDATE_MODELS = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-flash-latest'];
+      const defaultModels = [
+        'gemini-3.8-flash',
+        'gemini-3.1-flash-lite',
+        'gemini-2.5-flash-lite',
+        'gemini-flash-latest',
+      ];
+      const CANDIDATE_MODELS = selectedModel
+        ? Array.from(new Set([selectedModel, ...defaultModels]))
+        : defaultModels;
 
       for (const modelName of CANDIDATE_MODELS) {
         try {
           response = await Promise.race([
             ai.models.generateContent({
               model: modelName,
-              contents: [
-                {
-                  inlineData: {
-                    mimeType: cleanMime,
-                    data: cleanBase64,
-                  },
-                },
-                {
-                  text: `Analyze this image (filename: "${filename}") in detail and output the requested JSON metadata strictly matching what is visible in the picture.`,
-                },
-              ],
+              contents: contents,
               config: {
                 systemInstruction: systemPrompt,
                 responseMimeType: 'application/json',
@@ -365,7 +533,7 @@ REQUIREMENTS:
               },
             }),
             new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error(`Timeout with ${modelName}`)), 25000)
+              setTimeout(() => reject(new Error(`Timeout with ${modelName}`)), 12000)
             ),
           ]);
 
@@ -547,7 +715,7 @@ async function startServer() {
       server: { middlewareMode: true, port: PORT, host: '0.0.0.0' },
       appType: 'spa',
     });
-    app.use(vite.middlewares);
+    app.use(vite.middlewares as any);
   } else {
     app.use(express.static(path.resolve(__dirname, 'dist')));
     app.get('*', (_req: Request, res: Response) => {

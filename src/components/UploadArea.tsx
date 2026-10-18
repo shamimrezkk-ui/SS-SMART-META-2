@@ -69,9 +69,11 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
           multiple: true,
           types: [
             {
-              description: 'Stock Media Images',
+              description: 'Stock Media (Images, Vectors, Videos)',
               accept: {
                 'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.tiff', '.svg'],
+                'application/postscript': ['.eps', '.ai'],
+                'video/*': ['.mp4', '.webm', '.mov'],
               },
             },
           ],
@@ -103,7 +105,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
         for await (const entry of dirHandle.values()) {
           if (entry.kind === 'file') {
             const ext = entry.name.split('.').pop()?.toLowerCase();
-            if (['jpg', 'jpeg', 'png', 'webp', 'tiff'].includes(ext || '')) {
+            if (['jpg', 'jpeg', 'png', 'webp', 'tiff', 'svg', 'eps', 'ai', 'mp4', 'webm', 'mov'].includes(ext || '')) {
               try {
                 const f = await entry.getFile();
                 files.push(f);
@@ -130,7 +132,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/jpeg,image/png,image/webp,image/tiff,image/svg+xml"
+        accept="image/jpeg,image/png,image/webp,image/tiff,image/svg+xml,.eps,.ai,video/mp4,video/webm,video/quicktime"
         onChange={handleFileInputChange}
         className="hidden"
       />
@@ -151,31 +153,31 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
       <div
         className={`w-full rounded-3xl border-2 transition-all p-4 md:p-6 shadow-2xl ${
           isDragOver
-            ? 'border-[#FF0000] bg-[#160d12] shadow-[0_0_30px_rgba(255,0,0,0.45)]'
-            : 'border-[#FF1A1A]/80 hover:border-[#FF1A1A] bg-[#101522] shadow-[0_0_20px_rgba(255,0,0,0.2)]'
+            ? 'border-[#359FA0] bg-[#0d2223] shadow-[0_0_30px_rgba(53,159,160,0.45)]'
+            : 'border-[#359FA0]/80 hover:border-[#359FA0] bg-[#101522] shadow-[0_0_20px_rgba(53,159,160,0.2)]'
         }`}
       >
-        {/* Inner Dashed Border Box matching screenshot */}
+        {/* Inner Dashed Border Box */}
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className="w-full rounded-2xl border-2 border-dashed border-[#344766] hover:border-[#FF1A1A]/60 bg-[#0c1018]/90 transition-all p-6 md:p-8 flex flex-col items-center justify-center text-center"
+          className="w-full rounded-2xl border-2 border-dashed border-[#344766] hover:border-[#359FA0]/60 bg-[#0c1018]/90 transition-all p-6 md:p-8 flex flex-col items-center justify-center text-center"
         >
           {/* Upload Cloud Icon with Sharp Glowing Border */}
-          <div className="w-14 h-14 rounded-2xl bg-[#1c1117] border-2 border-[#FF1A1A] flex items-center justify-center mb-3 shadow-[0_0_15px_rgba(255,0,0,0.35)]">
-            <CloudUpload className="w-7 h-7 text-[#FF1A1A]" />
+          <div className="w-14 h-14 rounded-2xl bg-[#0d2223] border-2 border-[#359FA0] flex items-center justify-center mb-3 shadow-[0_0_15px_rgba(53,159,160,0.35)]">
+            <CloudUpload className="w-7 h-7 text-[#359FA0]" />
           </div>
 
           {/* Headings */}
           <h2 className="text-xl md:text-2xl font-black text-white mb-1.5 tracking-wide">
-            Drop your images here or browse files
+            Drop your Images, Vectors or Videos here or browse files
           </h2>
           <p className="text-xs text-slate-100 font-bold mb-1">
-            JPG, PNG, WEBP, TIFF, SVG supported — batch 100+ files
+            JPG, PNG, WEBP, TIFF, SVG, EPS, AI, MP4, WEBM supported — batch 100+ files
           </p>
           <span className="text-[11px] tracking-wider text-slate-300 font-extrabold mb-5 uppercase">
-            JPG • JPEG • PNG • WEBP • TIFF • SVG
+            IMAGES (JPG • PNG • WEBP) • VECTORS (SVG • EPS) • VIDEOS (MP4 • WEBM)
           </span>
 
           {/* Browse Files and Select Folder Buttons with Clear Sharp Borders */}
@@ -183,7 +185,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
             <button
               type="button"
               onClick={handleOpenNativePicker}
-              className="flex items-center gap-2 px-7 py-2.5 rounded-xl font-black text-xs text-white btn-red-gradient border border-[#ff6666] shadow-[0_0_18px_rgba(255,0,0,0.5)] hover:shadow-[0_0_25px_rgba(255,0,0,0.7)] cursor-pointer transition-all"
+              className="flex items-center gap-2 px-7 py-2.5 rounded-xl font-black text-xs text-white btn-teal-gradient border border-[#42B4B5] shadow-[0_0_18px_rgba(53,159,160,0.5)] hover:shadow-[0_0_25px_rgba(53,159,160,0.7)] cursor-pointer transition-all"
             >
               <FolderOpen className="w-4 h-4" />
               <span>Browse Files</span>
@@ -192,9 +194,9 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
             <button
               type="button"
               onClick={handleOpenFolderPicker}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-xs text-white bg-[#141b2c] hover:bg-[#1a243c] border-2 border-[#2b3a56] hover:border-[#FF1A1A] shadow-md transition-all cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-xs text-white bg-[#141b2c] hover:bg-[#1a243c] border-2 border-[#2b3a56] hover:border-[#359FA0] shadow-md transition-all cursor-pointer"
             >
-              <FolderSync className="w-4 h-4 text-[#FF1A1A]" />
+              <FolderSync className="w-4 h-4 text-[#359FA0]" />
               <span>Select Folder</span>
             </button>
 
@@ -216,11 +218,11 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
               onClick={() => setActiveMediaType('Images')}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer border-1.5 ${
                 activeMediaType === 'Images'
-                  ? 'bg-[#1e1015] border-[#FF0000] text-[#FF1A1A] shadow-[0_0_10px_rgba(255,0,0,0.35)]'
+                  ? 'bg-[#0d2223] border-[#359FA0] text-[#359FA0] shadow-[0_0_10px_rgba(53,159,160,0.35)]'
                   : 'border-transparent text-slate-200 hover:text-white hover:border-[#2b3a56]'
               }`}
             >
-              <ImageIcon className="w-3.5 h-3.5 text-[#FF1A1A]" />
+              <ImageIcon className="w-3.5 h-3.5 text-[#359FA0]" />
               <span>Images</span>
             </button>
 
@@ -229,11 +231,11 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
               onClick={() => setActiveMediaType('Vectors')}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer border-1.5 ${
                 activeMediaType === 'Vectors'
-                  ? 'bg-[#1e1015] border-[#FF0000] text-[#FF1A1A] shadow-[0_0_10px_rgba(255,0,0,0.35)]'
+                  ? 'bg-[#0d2223] border-[#359FA0] text-[#359FA0] shadow-[0_0_10px_rgba(53,159,160,0.35)]'
                   : 'border-transparent text-slate-200 hover:text-white hover:border-[#2b3a56]'
               }`}
             >
-              <GitFork className="w-3.5 h-3.5 text-[#FF1A1A]" />
+              <GitFork className="w-3.5 h-3.5 text-[#359FA0]" />
               <span>Vectors</span>
             </button>
 
@@ -242,11 +244,11 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
               onClick={() => setActiveMediaType('Videos')}
               className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer border-1.5 ${
                 activeMediaType === 'Videos'
-                  ? 'bg-[#1e1015] border-[#FF0000] text-[#FF1A1A] shadow-[0_0_10px_rgba(255,0,0,0.35)]'
+                  ? 'bg-[#0d2223] border-[#359FA0] text-[#359FA0] shadow-[0_0_10px_rgba(53,159,160,0.35)]'
                   : 'border-transparent text-slate-200 hover:text-white hover:border-[#2b3a56]'
               }`}
             >
-              <Film className="w-3.5 h-3.5 text-[#FF1A1A]" />
+              <Film className="w-3.5 h-3.5 text-[#359FA0]" />
               <span>Videos</span>
             </button>
           </div>
@@ -261,10 +263,10 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
           onClick={onProcessMetadata}
           className={`flex items-center gap-2.5 px-9 py-3 rounded-full text-sm font-black text-white transition-all cursor-pointer border-2 ${
             isProcessing
-              ? 'bg-[#5e121a] border-[#8a1a25] cursor-not-allowed opacity-80'
+              ? 'bg-[#1b4e50] border-[#267C7D] cursor-not-allowed opacity-80'
               : itemCount === 0 || !hasWaitingItems
               ? 'bg-[#1a2130] text-slate-400 border-[#2b374c] cursor-not-allowed'
-              : 'btn-red-gradient border-[#ff8888] shadow-[0_0_25px_rgba(255,0,0,0.6)] hover:shadow-[0_0_35px_rgba(255,0,0,0.85)]'
+              : 'btn-teal-gradient border-[#42B4B5] shadow-[0_0_25px_rgba(53,159,160,0.6)] hover:shadow-[0_0_35px_rgba(53,159,160,0.85)]'
           }`}
         >
           {isProcessing ? (

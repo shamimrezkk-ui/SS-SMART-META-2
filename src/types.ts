@@ -91,6 +91,7 @@ export interface AppSettings {
   transparentBackground: boolean;
   silhouette: boolean;
   singleWordKeywords: boolean;
+  selectedModel?: string;
 }
 
 export type MediaType = 'Images' | 'Vectors' | 'Videos';

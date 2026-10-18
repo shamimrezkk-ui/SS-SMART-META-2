@@ -36,9 +36,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <button
           type="button"
           onClick={onUploadMore}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#101522] border-2 border-[#2b3a56] hover:border-[#FF0000] text-white font-black transition-colors cursor-pointer shadow-xs"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#101522] border-2 border-[#2b3a56] hover:border-[#359FA0] text-white font-black transition-colors cursor-pointer shadow-xs"
         >
-          <Plus className="w-3.5 h-3.5 text-[#FF1A1A]" />
+          <Plus className="w-3.5 h-3.5 text-[#359FA0]" />
           <span>+ Upload More</span>
         </button>
 
@@ -50,7 +50,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#101522] border-2 transition-colors cursor-pointer ${
             selectedCount === 0
               ? 'border-[#1e2738] text-slate-500 cursor-not-allowed'
-              : 'border-[#2b3a56] hover:border-[#FF0000] text-white font-black shadow-xs'
+              : 'border-[#2b3a56] hover:border-[#359FA0] text-white font-black shadow-xs'
           }`}
         >
           <Edit className="w-3.5 h-3.5 text-slate-300" />
@@ -85,7 +85,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border-2 transition-colors cursor-pointer ${
             selectedCount === 0
               ? 'border-transparent text-slate-600 cursor-not-allowed'
-              : 'border-[#FF0000]/60 bg-[#1f1015] text-[#FF4D4D] hover:text-white hover:bg-[#FF0000] font-black shadow-xs'
+              : 'border-rose-500/60 bg-rose-950/30 text-rose-300 hover:text-white hover:bg-rose-700 font-black shadow-xs'
           }`}
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -116,7 +116,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 }}
                 className={`w-full text-left px-3.5 py-1.5 text-xs font-black transition-colors cursor-pointer ${
                   statusFilter === st
-                    ? 'bg-[#1e1015] text-[#FF1A1A]'
+                    ? 'bg-[#0d2223] text-[#359FA0]'
                     : 'text-white hover:bg-[#182030]'
                 }`}
               >

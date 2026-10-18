@@ -63,19 +63,19 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-4 select-none">
-      <div className="bg-[#101522] border-2 border-[#FF0000]/60 rounded-2xl max-w-2xl w-full p-6 text-white shadow-[0_0_35px_rgba(255,0,0,0.3)] max-h-[90vh] flex flex-col">
+      <div className="bg-[#101522] border-2 border-[#359FA0]/60 rounded-2xl max-w-2xl w-full p-6 text-white shadow-[0_0_35px_rgba(53,159,160,0.3)] max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[#1e273a] mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#1d1017] border border-[#FF0000] flex items-center justify-center text-[#FF1A1A] shadow-[0_0_12px_rgba(255,0,0,0.4)]">
-              <Shield className="w-5 h-5 text-[#FF1A1A]" />
+            <div className="w-10 h-10 rounded-xl bg-[#0d2223] border border-[#359FA0] flex items-center justify-center text-[#359FA0] shadow-[0_0_12px_rgba(53,159,160,0.4)]">
+              <Shield className="w-5 h-5 text-[#359FA0]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-black text-white tracking-wide">
                   ADMIN CONTROL PANEL
                 </h3>
-                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#FF0000] text-white">
+                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#359FA0] text-white">
                   ROOT ADMIN
                 </span>
               </div>
@@ -105,7 +105,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
           {/* Site Name Branding */}
           <div className="bg-[#0b0f17] border border-[#1e273a] rounded-xl p-3.5 space-y-2">
             <label className="flex items-center gap-2 text-white font-black text-xs">
-              <Globe className="w-4 h-4 text-[#FF1A1A]" />
+              <Globe className="w-4 h-4 text-[#359FA0]" />
               Site Name / Branding Title
             </label>
             <input
@@ -113,14 +113,14 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
               value={formData.siteName}
               onChange={(e) => handleChange('siteName', e.target.value)}
               placeholder="SS SMART META 2"
-              className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#FF0000] focus:outline-hidden font-bold"
+              className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#359FA0] focus:outline-hidden font-bold"
             />
           </div>
 
           {/* Header Navigation Links */}
           <div className="bg-[#0b0f17] border border-[#1e273a] rounded-xl p-3.5 space-y-3">
             <h4 className="text-xs font-black text-white flex items-center gap-2 border-b border-[#1b2234] pb-2">
-              <LinkIcon className="w-4 h-4 text-[#FF1A1A]" />
+              <LinkIcon className="w-4 h-4 text-[#359FA0]" />
               Navigation & External Link Settings
             </h4>
 
@@ -138,7 +138,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 value={formData.followPageUrl}
                 onChange={(e) => handleChange('followPageUrl', e.target.value)}
                 placeholder="https://facebook.com/yourpage"
-                className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#FF0000] focus:outline-hidden font-mono text-[11px]"
+                className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#359FA0] focus:outline-hidden font-mono text-[11px]"
               />
             </div>
 
@@ -156,7 +156,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 value={formData.tutorialUrl}
                 onChange={(e) => handleChange('tutorialUrl', e.target.value)}
                 placeholder="https://youtube.com/watch?v=..."
-                className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#FF0000] focus:outline-hidden font-mono text-[11px]"
+                className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#359FA0] focus:outline-hidden font-mono text-[11px]"
               />
             </div>
 
@@ -172,7 +172,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   value={formData.contactEmail}
                   onChange={(e) => handleChange('contactEmail', e.target.value)}
                   placeholder="support@thikanatech.com"
-                  className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#FF0000] focus:outline-hidden font-mono text-[11px]"
+                  className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#359FA0] focus:outline-hidden font-mono text-[11px]"
                 />
               </div>
               <div>
@@ -185,7 +185,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   value={formData.contactUrl}
                   onChange={(e) => handleChange('contactUrl', e.target.value)}
                   placeholder="https://t.me/thikanatech"
-                  className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#FF0000] focus:outline-hidden font-mono text-[11px]"
+                  className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#359FA0] focus:outline-hidden font-mono text-[11px]"
                 />
               </div>
             </div>
@@ -202,12 +202,12 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   value={formData.upgradeUrl}
                   onChange={(e) => handleChange('upgradeUrl', e.target.value)}
                   placeholder="https://yourshop.com/upgrade"
-                  className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#FF0000] focus:outline-hidden font-mono text-[11px]"
+                  className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#359FA0] focus:outline-hidden font-mono text-[11px]"
                 />
               </div>
               <div>
                 <label className="flex items-center gap-1.5 text-slate-200 mb-1">
-                  <Clock className="w-3.5 h-3.5 text-[#FF1A1A]" />
+                  <Clock className="w-3.5 h-3.5 text-[#359FA0]" />
                   Unlimited Tier Target Link
                 </label>
                 <input
@@ -215,7 +215,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   value={formData.unlimitedUrl}
                   onChange={(e) => handleChange('unlimitedUrl', e.target.value)}
                   placeholder="https://yourshop.com/unlimited"
-                  className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#FF0000] focus:outline-hidden font-mono text-[11px]"
+                  className="w-full bg-[#101522] border border-[#222c42] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#359FA0] focus:outline-hidden font-mono text-[11px]"
                 />
               </div>
             </div>
@@ -224,8 +224,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
           {/* Engine Mode */}
           <div className="bg-[#0b0f17] border border-[#1e273a] rounded-xl p-3.5 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#FF0000]/15 flex items-center justify-center text-[#FF1A1A]">
-                <Zap className="w-4 h-4 text-[#FF1A1A]" />
+              <div className="w-8 h-8 rounded-lg bg-[#359FA0]/15 flex items-center justify-center text-[#359FA0]">
+                <Zap className="w-4 h-4 text-[#359FA0]" />
               </div>
               <div>
                 <span className="text-xs font-black text-white">Ultra-Fast Zero-Error Engine</span>
@@ -241,7 +241,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 onChange={(e) => handleChange('fastGenerationSpeed', e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-700 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FF0000]" />
+              <div className="w-11 h-6 bg-slate-700 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#359FA0]" />
             </label>
           </div>
 
@@ -266,7 +266,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
               </button>
               <button
                 type="submit"
-                className="flex items-center gap-1.5 px-6 py-2 btn-red-gradient text-white text-xs font-black rounded-xl cursor-pointer shadow-[0_0_15px_rgba(255,0,0,0.5)]"
+                className="flex items-center gap-1.5 px-6 py-2 btn-teal-gradient text-white text-xs font-black rounded-xl cursor-pointer shadow-[0_0_15px_rgba(53,159,160,0.5)]"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>Save All Links</span>

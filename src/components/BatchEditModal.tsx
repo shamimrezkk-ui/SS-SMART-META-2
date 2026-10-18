@@ -50,7 +50,7 @@ export const BatchEditModal: React.FC<BatchEditModalProps> = ({
         {/* Header */}
         <div className="px-5 py-4 border-b border-[#1b2234] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Edit3 className="w-5 h-5 text-[#FF1A1A]" />
+            <Edit3 className="w-5 h-5 text-[#359FA0]" />
             <h2 className="text-base font-black text-white">
               Batch Edit ({selectedItems.length} Selected Images)
             </h2>
@@ -77,7 +77,7 @@ export const BatchEditModal: React.FC<BatchEditModalProps> = ({
                 onClick={() => setActionType('append')}
                 className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer ${
                   actionType === 'append'
-                    ? 'bg-[#FF0000] text-white shadow-[0_0_8px_rgba(255,0,0,0.4)]'
+                    ? 'bg-[#359FA0] text-white shadow-[0_0_8px_rgba(53,159,160,0.4)]'
                     : 'bg-[#0d121c] border border-[#20293d] text-slate-100'
                 }`}
               >
@@ -88,7 +88,7 @@ export const BatchEditModal: React.FC<BatchEditModalProps> = ({
                 onClick={() => setActionType('prepend')}
                 className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer ${
                   actionType === 'prepend'
-                    ? 'bg-[#FF0000] text-white shadow-[0_0_8px_rgba(255,0,0,0.4)]'
+                    ? 'bg-[#359FA0] text-white shadow-[0_0_8px_rgba(53,159,160,0.4)]'
                     : 'bg-[#0d121c] border border-[#20293d] text-slate-100'
                 }`}
               >
@@ -100,7 +100,7 @@ export const BatchEditModal: React.FC<BatchEditModalProps> = ({
               value={newKeywords}
               onChange={(e) => setNewKeywords(e.target.value)}
               placeholder="e.g. 4k resolution, high quality, commercial"
-              className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white font-bold placeholder-slate-400 focus:border-[#FF0000] focus:outline-hidden"
+              className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white font-bold placeholder-slate-400 focus:border-[#359FA0] focus:outline-hidden"
             />
           </div>
 
@@ -114,7 +114,7 @@ export const BatchEditModal: React.FC<BatchEditModalProps> = ({
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               placeholder="e.g. Animals, Nature, Technology, Business"
-              className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white font-bold placeholder-slate-400 focus:border-[#FF0000] focus:outline-hidden"
+              className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white font-bold placeholder-slate-400 focus:border-[#359FA0] focus:outline-hidden"
             />
           </div>
 
@@ -129,14 +129,14 @@ export const BatchEditModal: React.FC<BatchEditModalProps> = ({
                 value={findText}
                 onChange={(e) => setFindText(e.target.value)}
                 placeholder="Find text..."
-                className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-1.5 text-white font-bold placeholder-slate-400 focus:border-[#FF0000] focus:outline-hidden"
+                className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-1.5 text-white font-bold placeholder-slate-400 focus:border-[#359FA0] focus:outline-hidden"
               />
               <input
                 type="text"
                 value={replaceText}
                 onChange={(e) => setReplaceText(e.target.value)}
                 placeholder="Replace with..."
-                className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-1.5 text-white font-bold placeholder-slate-400 focus:border-[#FF0000] focus:outline-hidden"
+                className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-1.5 text-white font-bold placeholder-slate-400 focus:border-[#359FA0] focus:outline-hidden"
               />
             </div>
           </div>
@@ -154,7 +154,7 @@ export const BatchEditModal: React.FC<BatchEditModalProps> = ({
           <button
             type="button"
             onClick={handleApply}
-            className="px-5 py-2 rounded-xl text-xs font-black text-white btn-red-gradient shadow-[0_0_12px_rgba(255,0,0,0.35)] cursor-pointer"
+            className="px-5 py-2 rounded-xl text-xs font-black text-white btn-teal-gradient shadow-[0_0_12px_rgba(53,159,160,0.35)] cursor-pointer"
           >
             Apply Changes
           </button>

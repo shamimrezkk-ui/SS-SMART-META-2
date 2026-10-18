@@ -98,15 +98,15 @@ export const Header: React.FC<HeaderProps> = ({
       <header className="w-full bg-[#0b0f17] border-b border-[#1b2234] px-4 py-2.5 flex items-center justify-between sticky top-0 z-30 select-none">
         {/* Left: SS SMART META 2 Logo & Title */}
         <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 rounded-full bg-gradient-to-tr from-[#FF0000] via-[#7A0000] to-[#121824] p-[2px] flex items-center justify-center shadow-[0_0_15px_rgba(255,0,0,0.6)]">
+          <div className="relative w-10 h-10 rounded-full bg-gradient-to-tr from-[#359FA0] via-[#267C7D] to-[#121824] p-[2px] flex items-center justify-center shadow-[0_0_15px_rgba(53,159,160,0.6)]">
             <div className="w-full h-full rounded-full bg-[#0d121c] flex flex-col items-center justify-center">
-              <span className="text-[10px] font-black tracking-tighter text-[#FF1A1A] leading-none">SS</span>
+              <span className="text-[10px] font-black tracking-tighter text-[#359FA0] leading-none">SS</span>
               <span className="text-[7px] font-extrabold tracking-widest text-white leading-none">META</span>
             </div>
           </div>
           <div className="flex items-center text-xl font-black tracking-wide">
             <span className="text-white drop-shadow-sm font-black">SS SMART</span>
-            <span className="text-[#FF1A1A] ml-2 drop-shadow-[0_0_12px_rgba(255,0,0,0.85)] font-black">
+            <span className="text-[#359FA0] ml-2 drop-shadow-[0_0_12px_rgba(53,159,160,0.85)] font-black">
               META 2
             </span>
           </div>
@@ -118,9 +118,9 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={handleUnlimitedClick}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-[#111726] border border-[#FF0000]/70 text-[#FF1A1A] shadow-[0_0_10px_rgba(255,0,0,0.25)] hover:shadow-[0_0_16px_rgba(255,0,0,0.5)] transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-[#0d2223] border border-[#359FA0]/70 text-[#359FA0] shadow-[0_0_10px_rgba(53,159,160,0.25)] hover:shadow-[0_0_16px_rgba(53,159,160,0.5)] transition-all cursor-pointer"
           >
-            <Clock className="w-3.5 h-3.5 text-[#FF1A1A]" />
+            <Clock className="w-3.5 h-3.5 text-[#359FA0]" />
             <span>∞ UNLIMITED</span>
           </button>
 
@@ -128,7 +128,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={handleUpgradeClick}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black text-white btn-red-gradient shadow-[0_0_12px_rgba(255,0,0,0.4)] hover:shadow-[0_0_18px_rgba(255,0,0,0.6)] cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black text-white btn-teal-gradient shadow-[0_0_12px_rgba(53,159,160,0.4)] hover:shadow-[0_0_18px_rgba(53,159,160,0.6)] cursor-pointer"
           >
             <Star className="w-3.5 h-3.5 fill-white text-white" />
             <span>Upgrade to Ultra</span>
@@ -168,9 +168,9 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onOpenAdminPanel}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-[#1a111a] hover:bg-[#251525] text-white border border-[#FF0000]/60 shadow-[0_0_8px_rgba(255,0,0,0.3)] transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-[#0d2223] hover:bg-[#132d2f] text-white border border-[#359FA0]/60 shadow-[0_0_8px_rgba(53,159,160,0.3)] transition-all cursor-pointer"
           >
-            <Shield className="w-3.5 h-3.5 text-[#FF1A1A]" />
+            <Shield className="w-3.5 h-3.5 text-[#359FA0]" />
             <span>Admin Panel</span>
           </button>
 
@@ -180,13 +180,13 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onToggleAi}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
               aiActive
-                ? 'bg-[#181015] border-[#FF0000] text-[#FF1A1A] shadow-[0_0_10px_rgba(255,0,0,0.3)]'
+                ? 'bg-[#0d2223] border-[#359FA0] text-[#359FA0] shadow-[0_0_10px_rgba(53,159,160,0.3)]'
                 : 'bg-[#121620] border-[#222a3e] text-slate-200 hover:text-white'
             }`}
           >
             <span
               className={`w-2 h-2 rounded-full ${
-                aiActive ? 'bg-[#FF1A1A] shadow-[0_0_6px_#FF0000]' : 'bg-slate-400'
+                aiActive ? 'bg-[#359FA0] shadow-[0_0_6px_#359FA0]' : 'bg-slate-400'
               }`}
             />
             <span>{aiActive ? '• AI ON' : '• AI OFF'}</span>
@@ -222,9 +222,9 @@ export const Header: React.FC<HeaderProps> = ({
       {/* 1. UNLIMITED MODAL */}
       {showUnlimitedModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 select-none">
-          <div className="bg-[#101522] border-2 border-[#FF0000]/60 rounded-2xl max-w-md w-full p-6 text-white shadow-2xl">
+          <div className="bg-[#101522] border-2 border-[#359FA0]/60 rounded-2xl max-w-md w-full p-6 text-white shadow-2xl">
             <div className="flex items-center gap-2 mb-3">
-              <Clock className="w-6 h-6 text-[#FF1A1A]" />
+              <Clock className="w-6 h-6 text-[#359FA0]" />
               <h3 className="text-base font-black text-white">SS SMART META 2 — Unlimited Engine</h3>
             </div>
             <p className="text-xs text-slate-200 font-bold mb-4 leading-relaxed">
@@ -248,7 +248,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={() => setShowUnlimitedModal(false)}
-                className="px-5 py-2 btn-red-gradient text-white text-xs font-black rounded-xl cursor-pointer"
+                className="px-5 py-2 btn-teal-gradient text-white text-xs font-black rounded-xl cursor-pointer"
               >
                 Close
               </button>
@@ -260,7 +260,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* 2. UPGRADE TO ULTRA MODAL */}
       {showUltraModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 select-none">
-          <div className="bg-[#101522] border-2 border-[#FF0000]/60 rounded-2xl max-w-lg w-full p-6 text-white shadow-2xl">
+          <div className="bg-[#101522] border-2 border-[#359FA0]/60 rounded-2xl max-w-lg w-full p-6 text-white shadow-2xl">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-6 h-6 text-amber-400" />
               <h3 className="text-base font-black text-white">Upgrade to SS SMART ULTRA</h3>
@@ -280,10 +280,10 @@ export const Header: React.FC<HeaderProps> = ({
                 </ul>
               </div>
 
-              <div className="bg-[#191016] border-2 border-[#FF0000] rounded-xl p-3.5 space-y-2 shadow-[0_0_15px_rgba(255,0,0,0.3)]">
+              <div className="bg-[#0d2223] border-2 border-[#359FA0] rounded-xl p-3.5 space-y-2 shadow-[0_0_15px_rgba(53,159,160,0.3)]">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-[#FF1A1A]">ULTRA PRO</span>
-                  <span className="text-[9px] bg-[#FF0000] text-white px-1.5 py-0.5 rounded-sm font-black">ACTIVE</span>
+                  <span className="text-xs font-black text-[#359FA0]">ULTRA PRO</span>
+                  <span className="text-[9px] bg-[#359FA0] text-white px-1.5 py-0.5 rounded-sm font-black">ACTIVE</span>
                 </div>
                 <div className="text-lg font-black text-white">Lifetime Access</div>
                 <ul className="text-[11px] text-slate-100 font-bold space-y-1">
@@ -308,7 +308,7 @@ export const Header: React.FC<HeaderProps> = ({
                   alert('Ultra Features are already activated in your current session!');
                   setShowUltraModal(false);
                 }}
-                className="px-5 py-2 btn-red-gradient text-white text-xs font-black rounded-xl cursor-pointer shadow-[0_0_12px_rgba(255,0,0,0.4)]"
+                className="px-5 py-2 btn-teal-gradient text-white text-xs font-black rounded-xl cursor-pointer shadow-[0_0_12px_rgba(53,159,160,0.4)]"
               >
                 Activate All Ultra Features
               </button>
@@ -320,7 +320,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* 3. FOLLOW PAGE MODAL */}
       {showFollowModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 select-none">
-          <div className="bg-[#101522] border-2 border-[#FF0000]/60 rounded-2xl max-w-md w-full p-6 text-white shadow-2xl">
+          <div className="bg-[#101522] border-2 border-[#359FA0]/60 rounded-2xl max-w-md w-full p-6 text-white shadow-2xl">
             <h3 className="text-base font-black text-white mb-2 flex items-center gap-2">
               <Facebook className="w-5 h-5 text-[#1877F2]" />
               Follow SS SMART META 2 Official Page
@@ -336,7 +336,7 @@ export const Header: React.FC<HeaderProps> = ({
                 href={adminLinks.followPageUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1 text-xs font-black text-[#FF1A1A] hover:underline"
+                className="flex items-center gap-1 text-xs font-black text-[#359FA0] hover:underline"
               >
                 <span>Visit</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -346,7 +346,7 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 type="button"
                 onClick={() => setShowFollowModal(false)}
-                className="px-5 py-2 btn-red-gradient text-white text-xs font-black rounded-xl cursor-pointer"
+                className="px-5 py-2 btn-teal-gradient text-white text-xs font-black rounded-xl cursor-pointer"
               >
                 Close
               </button>
@@ -358,9 +358,9 @@ export const Header: React.FC<HeaderProps> = ({
       {/* 4. CONTACT MODAL */}
       {showContactModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 select-none">
-          <div className="bg-[#101522] border-2 border-[#FF0000]/60 rounded-2xl max-w-md w-full p-6 text-white shadow-2xl">
+          <div className="bg-[#101522] border-2 border-[#359FA0]/60 rounded-2xl max-w-md w-full p-6 text-white shadow-2xl">
             <h3 className="text-base font-black text-white mb-1 flex items-center gap-2">
-              <Mail className="w-5 h-5 text-[#FF1A1A]" />
+              <Mail className="w-5 h-5 text-[#359FA0]" />
               Contact Developer & Support
             </h3>
             <p className="text-xs text-slate-200 font-bold mb-4">
@@ -383,7 +383,7 @@ export const Header: React.FC<HeaderProps> = ({
                     value={contactName}
                     onChange={(e) => setContactName(e.target.value)}
                     placeholder="Enter your name"
-                    className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#FF0000] focus:outline-hidden"
+                    className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#359FA0] focus:outline-hidden"
                   />
                 </div>
                 <div>
@@ -394,7 +394,7 @@ export const Header: React.FC<HeaderProps> = ({
                     value={contactEmail}
                     onChange={(e) => setContactEmail(e.target.value)}
                     placeholder="Enter your email"
-                    className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#FF0000] focus:outline-hidden"
+                    className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#359FA0] focus:outline-hidden"
                   />
                 </div>
                 <div>
@@ -405,7 +405,7 @@ export const Header: React.FC<HeaderProps> = ({
                     value={contactMsg}
                     onChange={(e) => setContactMsg(e.target.value)}
                     placeholder="Type your message or request..."
-                    className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#FF0000] focus:outline-hidden resize-none"
+                    className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:border-[#359FA0] focus:outline-hidden resize-none"
                   />
                 </div>
 
@@ -419,7 +419,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
                   <button
                     type="submit"
-                    className="flex items-center gap-1.5 px-5 py-2 btn-red-gradient text-white text-xs font-black rounded-xl cursor-pointer"
+                    className="flex items-center gap-1.5 px-5 py-2 btn-teal-gradient text-white text-xs font-black rounded-xl cursor-pointer"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>Send Message</span>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Image as ImageIcon,
   TableProperties,
@@ -12,10 +12,17 @@ import {
   CheckCircle2,
   Loader2,
   HardDrive,
+  Maximize2,
+  Film,
+  GitFork,
+  Star,
+  FileCode,
 } from 'lucide-react';
 import { ImageItem, PlatformType } from '../types';
 import { buildCsvString, downloadCsvFile } from '../utils/csvExporter';
 import { embedDirectlyIntoItem, downloadEmbeddedImage } from '../utils/metadataEmbedder';
+import { titleToFilename } from '../utils/filenameHelper';
+import { FullPreviewModal } from './FullPreviewModal';
 
 interface MetadataCardProps {
   item: ImageItem;
@@ -32,6 +39,46 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
     const [isEmbeddingSingle, setIsEmbeddingSingle] = useState(false);
     const [isDownloadingImage, setIsDownloadingImage] = useState(false);
     const [embedToast, setEmbedToast] = useState<string | null>(null);
+    const [isFullPreviewOpen, setIsFullPreviewOpen] = useState(false);
+
+    const isVideo =
+      ['MP4', 'WEBM', 'MOV', 'VIDEO'].includes(item.format?.toUpperCase()) ||
+      Boolean(item.mimeType?.startsWith('video/')) ||
+      Boolean(item.name.match(/\.(mp4|webm|mov)$/i));
+
+    const isVector =
+      ['SVG', 'EPS', 'AI', 'VECTOR'].includes(item.format?.toUpperCase()) ||
+      Boolean(item.name.match(/\.(svg|eps|ai)$/i));
+
+    // Default to clean crisp white background for vectors so artwork is 100% visible
+    const [previewBackdrop, setPreviewBackdrop] = useState<'dark' | 'white' | 'checker' | 'studio'>(
+      isVector ? 'white' : 'dark'
+    );
+
+    useEffect(() => {
+      if (isVector) {
+        setPreviewBackdrop('white');
+      }
+    }, [isVector]);
+
+    const getBackdropStyle = () => {
+      if (previewBackdrop === 'white') {
+        return { backgroundColor: '#FFFFFF' };
+      }
+      if (previewBackdrop === 'studio') {
+        return { backgroundColor: '#E2E8F0' };
+      }
+      if (previewBackdrop === 'checker') {
+        return {
+          backgroundColor: '#1e293b',
+          backgroundImage:
+            'linear-gradient(45deg, #334155 25%, transparent 25%), linear-gradient(-45deg, #334155 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #334155 75%), linear-gradient(-45deg, transparent 75%, #334155 75%)',
+          backgroundSize: '16px 16px',
+          backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px',
+        };
+      }
+      return { backgroundColor: '#070a10' };
+    };
 
     const handleCopy = (field: string, text: string) => {
       if (!text) return;
@@ -53,7 +100,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
         try {
           const res = await embedDirectlyIntoItem(item);
           if (res.success) {
-            setEmbedToast('Embedded directly in-place! ZERO files downloaded.');
+            setEmbedToast('Embedded directly in-place with 5-Star Rating & Renamed filename!');
             if (res.updatedName) {
               onUpdateItem(item.id, { name: res.updatedName, originalName: res.updatedName });
             }
@@ -64,10 +111,10 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
           setEmbedToast(`Embed error: ${err?.message || 'Failed'}`);
         } finally {
           setIsEmbeddingSingle(false);
-          setTimeout(() => setEmbedToast(null), 3000);
+          setTimeout(() => setEmbedToast(null), 3500);
         }
       } else if (onOpenEmbedModal) {
-        // Open folder embedder to write in-place to directory
+        // Open folder embedder to write in-place directly into disk folder
         onOpenEmbedModal();
       }
     };
@@ -77,9 +124,9 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
       try {
         const savedName = await downloadEmbeddedImage(item);
         if (savedName) {
-          onUpdateItem(item.id, { name: savedName });
+          onUpdateItem(item.id, { name: savedName, originalName: savedName });
         }
-        setEmbedToast(`Downloaded "${savedName || item.name}" with full embedded EXIF (XP Tags), IPTC & XMP!`);
+        setEmbedToast(`Saved "${savedName || item.name}" with 5-Star Rating, EXIF, IPTC & XMP embedded!`);
       } catch (err: any) {
         setEmbedToast(`Save error: ${err?.message || 'Failed'}`);
       } finally {
@@ -97,18 +144,18 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
       return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
     };
 
-    // Status pill style with sharp borders
+    // Status badge style
     const getStatusBadge = () => {
       switch (item.status) {
         case 'PROCESSING':
           return (
-            <span className="px-3 py-0.5 rounded-full text-[10px] font-black tracking-wider bg-[#2a1017] border-1.5 border-[#FF0000] text-[#FF1A1A] animate-pulse shadow-[0_0_10px_rgba(255,0,0,0.5)]">
+            <span className="px-3 py-0.5 rounded-full text-[10px] font-black tracking-wider bg-[#0d2223] border-1.5 border-[#359FA0] text-[#359FA0] animate-pulse shadow-[0_0_10px_rgba(53,159,160,0.5)]">
               PROCESSING
             </span>
           );
         case 'SUCCESS':
           return (
-            <span className="px-3 py-0.5 rounded-full text-[10px] font-black tracking-wider bg-[#0f241a] border-1.5 border-emerald-500 text-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.3)]">
+            <span className="px-3 py-0.5 rounded-full text-[10px] font-black tracking-wider bg-[#0d2223] border-1.5 border-[#359FA0] text-[#42B4B5] shadow-[0_0_8px_rgba(53,159,160,0.3)]">
               SUCCESS
             </span>
           );
@@ -123,7 +170,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
                   type="button"
                   onClick={() => onRetryItem(item.id)}
                   title="Retry this image"
-                  className="p-1 rounded-md bg-[#1a0f14] border border-[#FF0000] text-[#FF1A1A] hover:bg-[#FF0000] hover:text-white transition-colors cursor-pointer"
+                  className="p-1 rounded-md bg-[#0d2223] border border-[#359FA0] text-[#359FA0] hover:bg-[#359FA0] hover:text-white transition-colors cursor-pointer"
                 >
                   <RotateCw className="w-3 h-3" />
                 </button>
@@ -144,58 +191,173 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
       <div
         className={`w-full bg-[#101522] rounded-2xl border-2 transition-all overflow-hidden shadow-lg ${
           item.selected
-            ? 'border-[#FF0000] shadow-[0_0_18px_rgba(255,0,0,0.35)]'
+            ? 'border-[#359FA0] shadow-[0_0_18px_rgba(53,159,160,0.35)]'
             : item.status === 'PROCESSING'
-            ? 'border-[#FF0000] shadow-[0_0_15px_rgba(255,0,0,0.3)]'
-            : 'border-[#283854] hover:border-slate-300'
+            ? 'border-[#359FA0] shadow-[0_0_15px_rgba(53,159,160,0.3)]'
+            : 'border-[#283854] hover:border-[#359FA0]/60'
         }`}
       >
+        {/* TOP BAR: PROMINENT FILENAME & 5-STAR RATING (User Request: uporer file name change hoi na 5star bose na) */}
+        <div className="px-4 py-2 bg-[#0b0f17] border-b-2 border-[#202c42] flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <input
+              type="checkbox"
+              checked={item.selected}
+              onChange={(e) => onUpdateItem(item.id, { selected: e.target.checked })}
+              className="w-4 h-4 accent-[#359FA0] rounded-sm cursor-pointer shrink-0"
+            />
+            <div className="flex items-center gap-1.5 text-xs font-black text-[#42B4B5] shrink-0">
+              {isVideo ? (
+                <Film className="w-4 h-4 text-purple-400" />
+              ) : isVector ? (
+                <GitFork className="w-4 h-4 text-amber-400" />
+              ) : (
+                <ImageIcon className="w-4 h-4 text-[#359FA0]" />
+              )}
+              <span className="uppercase text-[11px] font-bold text-slate-300">
+                {item.format}
+              </span>
+            </div>
+
+            {/* Prominently Displayed Current Filename at the Top Header */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[11px] font-bold text-slate-400">File:</span>
+              <span
+                className="font-mono text-xs font-black text-white px-2 py-0.5 rounded-md bg-[#131b2a] border border-[#359FA0]/50 truncate max-w-[260px] sm:max-w-[420px] md:max-w-[550px]"
+                title={item.name}
+              >
+                {item.name}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* 5-Star Rating Indicator (Ensures user knows 5-Star Rating is active) */}
+            <div
+              className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/50 border border-amber-500/70 text-amber-300 text-[10px] font-black shadow-[0_0_8px_rgba(245,158,11,0.25)]"
+              title="5-Star Rating (EXIF 0x4746 Rating 5, RatingPercent 99, XMP xmp:Rating=5, MicrosoftPhoto:Rating=99)"
+            >
+              <div className="flex text-amber-400">
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+              </div>
+              <span>5★ Embedded</span>
+            </div>
+
+            {getStatusBadge()}
+
+            <button
+              type="button"
+              onClick={() => onRemoveItem(item.id)}
+              className="text-slate-400 hover:text-rose-400 p-1 rounded-sm transition-colors cursor-pointer"
+              title="Remove item"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-12 gap-0">
           {/* LEFT COLUMN: IMAGE PREVIEW */}
           <div className="md:col-span-4 p-4 border-b-2 md:border-b-0 md:border-r-2 border-[#202c42] flex flex-col justify-between bg-[#0d121c]/70">
-            {/* Header: Title & Status */}
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={item.selected}
-                    onChange={(e) => onUpdateItem(item.id, { selected: e.target.checked })}
-                    className="w-4 h-4 accent-[#FF0000] rounded-sm cursor-pointer"
-                  />
-                  <div className="flex items-center gap-1.5 text-xs font-black text-amber-400">
-                    <ImageIcon className="w-4 h-4" />
-                    <span>IMAGE PREVIEW</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {getStatusBadge()}
+              {/* Thumbnail Display: Handles Image, Video, Vector with Full Preview & Ready-Made Backdrop Switcher */}
+              <div
+                className="relative rounded-xl overflow-hidden border-2 border-[#263550] aspect-4/3 flex items-center justify-center group shadow-inner transition-colors duration-150"
+                style={getBackdropStyle()}
+              >
+                {/* Backdrop Switcher for transparent vectors */}
+                <div className="absolute top-2 left-2 z-10 flex items-center gap-0.5 bg-black/80 backdrop-blur-xs border border-white/20 rounded-md p-0.5 shadow-md opacity-80 group-hover:opacity-100 transition-opacity">
                   <button
                     type="button"
-                    onClick={() => onRemoveItem(item.id)}
-                    className="text-slate-400 hover:text-rose-400 p-0.5 rounded-sm transition-colors cursor-pointer"
-                    title="Remove item"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewBackdrop('dark');
+                    }}
+                    className={`w-4 h-4 rounded-xs flex items-center justify-center text-[9px] font-black transition-all cursor-pointer ${
+                      previewBackdrop === 'dark' ? 'bg-[#359FA0] text-white shadow-xs' : 'text-slate-300 hover:text-white'
+                    }`}
+                    title="Dark Backdrop (Preview Only)"
                   >
-                    <X className="w-4 h-4" />
+                    D
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewBackdrop('white');
+                    }}
+                    className={`w-4 h-4 rounded-xs flex items-center justify-center text-[9px] font-black transition-all cursor-pointer ${
+                      previewBackdrop === 'white' ? 'bg-[#359FA0] text-white shadow-xs' : 'text-slate-300 hover:text-white'
+                    }`}
+                    title="White Backdrop (Vector Preview)"
+                  >
+                    W
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewBackdrop('checker');
+                    }}
+                    className={`w-4 h-4 rounded-xs flex items-center justify-center text-[9px] font-black transition-all cursor-pointer ${
+                      previewBackdrop === 'checker' ? 'bg-[#359FA0] text-white shadow-xs' : 'text-slate-300 hover:text-white'
+                    }`}
+                    title="Transparency Grid"
+                  >
+                    G
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewBackdrop('studio');
+                    }}
+                    className={`w-4 h-4 rounded-xs flex items-center justify-center text-[9px] font-black transition-all cursor-pointer ${
+                      previewBackdrop === 'studio' ? 'bg-[#359FA0] text-white shadow-xs' : 'text-slate-300 hover:text-white'
+                    }`}
+                    title="Studio Grey Backdrop"
+                  >
+                    S
                   </button>
                 </div>
-              </div>
 
-              {/* Thumbnail Display with Sharp Border Line */}
-              <div className="relative rounded-xl overflow-hidden bg-[#070a10] border-2 border-[#263550] aspect-4/3 flex items-center justify-center group shadow-inner">
-                <img
-                  src={item.previewUrl}
-                  alt={item.name}
-                  className="w-full h-full object-contain"
-                  loading="lazy"
-                />
+                {isVideo ? (
+                  <video
+                    src={item.previewUrl}
+                    muted
+                    playsInline
+                    controls
+                    className="w-full h-full object-contain bg-black"
+                  />
+                ) : (
+                  <img
+                    src={item.previewUrl}
+                    alt={item.name}
+                    className="w-full h-full object-contain p-2 cursor-pointer transition-transform duration-200 group-hover:scale-102"
+                    loading="lazy"
+                    onClick={() => setIsFullPreviewOpen(true)}
+                  />
+                )}
+
+                {/* Full Preview Hover Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsFullPreviewOpen(true)}
+                  className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/80 hover:bg-[#359FA0] text-white border border-white/20 transition-all opacity-0 group-hover:opacity-100 cursor-pointer shadow-md z-10"
+                  title="Open Full Resolution Preview"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </button>
 
                 {item.status === 'PROCESSING' && (
-                  <div className="absolute inset-0 bg-black/60 backdrop-blur-2xs flex flex-col items-center justify-center gap-2">
-                    <div className="w-8 h-8 rounded-full border-2 border-[#FF0000] border-t-transparent animate-spin" />
-                    <span className="text-[11px] text-[#FF1A1A] font-black uppercase tracking-wider">
-                      Analyzing Image...
+                  <div className="absolute inset-0 bg-black/70 backdrop-blur-2xs flex flex-col items-center justify-center gap-2">
+                    <div className="w-8 h-8 rounded-full border-2 border-[#359FA0] border-t-transparent animate-spin" />
+                    <span className="text-[11px] text-[#42B4B5] font-black uppercase tracking-wider">
+                      Analyzing {isVideo ? 'Video' : isVector ? 'Vector' : 'Image'}...
                     </span>
                   </div>
                 )}
@@ -220,16 +382,16 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
             </div>
           </div>
 
-          {/* RIGHT COLUMN: GENERATED METADATA with Sharp Border Inputs */}
+          {/* RIGHT COLUMN: GENERATED METADATA */}
           <div className="md:col-span-8 p-4 flex flex-col justify-between space-y-3.5 bg-[#101522]">
-            {/* Header: Title, Source badge, Embed In-Place & Download CSV */}
+            {/* Header: Title, Source badge, Embed In-Place & Download Actions */}
             <div className="flex items-center justify-between pb-2 border-b-2 border-[#202c42] flex-wrap gap-2">
-              <div className="flex items-center gap-2 text-xs font-black text-amber-400">
-                <TableProperties className="w-4 h-4" />
-                <span>Generated Metadata</span>
+              <div className="flex items-center gap-2 text-xs font-black text-[#42B4B5]">
+                <TableProperties className="w-4 h-4 text-[#359FA0]" />
+                <span className="text-white">Generated Metadata</span>
                 {item.source === 'gemini' && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-950/80 border border-purple-500/80 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.3)]">
-                    ✨ Gemini AI
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-[#0d2223] border border-[#359FA0] text-[#42B4B5] shadow-[0_0_8px_rgba(53,159,160,0.3)]">
+                    ✨ Gemini Vision
                   </span>
                 )}
                 {item.source === 'instant_engine' && (
@@ -240,20 +402,28 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
-                {/* Direct Download Image with Embedded Metadata & Renamed to Title */}
+                {/* Save Single Image with Embedded Metadata & Renamed to Title */}
                 <button
                   type="button"
                   onClick={handleDownloadSingleImage}
                   disabled={isDownloadingImage || (!item.title && (!item.keywords || item.keywords.length === 0))}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-[#0d2218] border-2 border-emerald-500 hover:border-emerald-300 text-emerald-400 transition-all cursor-pointer disabled:opacity-50 shadow-[0_0_12px_rgba(16,185,129,0.3)] hover:shadow-[0_0_18px_rgba(16,185,129,0.5)]"
-                  title="Download image file renamed with Title and embedded EXIF, IPTC & XMP metadata"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-[#0d2223] border-2 border-[#359FA0] hover:border-[#42B4B5] text-[#42B4B5] transition-all cursor-pointer disabled:opacity-50 shadow-[0_0_12px_rgba(53,159,160,0.3)] hover:shadow-[0_0_18px_rgba(53,159,160,0.5)]"
+                  title="Download image renamed to match Title with embedded EXIF, 5-Star Rating, IPTC & XMP"
                 >
                   {isDownloadingImage ? (
-                    <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 text-[#42B4B5] animate-spin" />
                   ) : (
-                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                    <Download className="w-3.5 h-3.5 text-[#359FA0]" />
                   )}
-                  <span>Save Image (Renamed & Embedded)</span>
+                  <span>
+                    {isDownloadingImage
+                      ? 'Saving...'
+                      : isVideo
+                      ? 'Save Video'
+                      : isVector
+                      ? 'Save Vector (Renamed & Embedded)'
+                      : 'Save Image (Renamed & 5★)'}
+                  </span>
                 </button>
 
                 {/* 1-Click Embed In-Place (Zero Downloads) */}
@@ -261,21 +431,21 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
                   type="button"
                   onClick={handleEmbedSingleItem}
                   disabled={isEmbeddingSingle || (!item.title && (!item.keywords || item.keywords.length === 0))}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-[#0b0f17] border-2 border-[#2b3a56] hover:border-[#FF0000] text-white transition-all cursor-pointer disabled:opacity-50"
-                  title="Embed metadata directly in-place (No browser download)"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-[#0b0f17] border-2 border-[#2b3a56] hover:border-[#359FA0] text-white transition-all cursor-pointer disabled:opacity-50"
+                  title="Embed metadata and 5-star rating directly in-place without browser download"
                 >
                   {isEmbeddingSingle ? (
-                    <Loader2 className="w-3.5 h-3.5 text-[#FF1A1A] animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 text-[#359FA0] animate-spin" />
                   ) : (
-                    <Box className="w-3.5 h-3.5 text-[#FF1A1A]" />
+                    <Box className="w-3.5 h-3.5 text-[#359FA0]" />
                   )}
-                  <span>Embed In-Place</span>
+                  <span>Save In-Place</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleDownloadItemCsv}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black text-white btn-red-gradient shadow-[0_0_10px_rgba(255,0,0,0.35)] cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black text-white btn-teal-gradient shadow-[0_0_10px_rgba(53,159,160,0.35)] cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Download CSV</span>
@@ -285,8 +455,8 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
 
             {/* In-Place Embed Toast feedback */}
             {embedToast && (
-              <div className="p-2.5 rounded-xl bg-emerald-950/80 border-2 border-emerald-500/80 text-emerald-300 text-xs font-bold flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="p-2.5 rounded-xl bg-[#0d2223] border-2 border-[#359FA0] text-[#42B4B5] text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#359FA0] shrink-0" />
                 <span>{embedToast}</span>
               </div>
             )}
@@ -297,9 +467,9 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-amber-400 font-black">Filename:</span>
-                    <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/70 border border-emerald-500/60 px-1.5 py-0.5 rounded flex items-center gap-1">
-                      <Check className="w-3 h-3 text-emerald-400" />
+                    <span className="text-white font-black">Filename:</span>
+                    <span className="text-[10px] text-[#42B4B5] font-bold bg-[#0d2223] border border-[#359FA0]/60 px-1.5 py-0.5 rounded flex items-center gap-1">
+                      <Check className="w-3 h-3 text-[#359FA0]" />
                       Auto-Synced with Title
                     </span>
                   </div>
@@ -320,7 +490,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
                   type="text"
                   value={item.name}
                   onChange={(e) => onUpdateItem(item.id, { name: e.target.value })}
-                  className="w-full bg-[#0b0f17] border-2 border-[#283854] rounded-xl px-3 py-1.5 text-xs text-white font-black font-mono focus:border-[#FF0000] focus:outline-hidden"
+                  className="w-full bg-[#0b0f17] border-2 border-[#283854] rounded-xl px-3 py-1.5 text-xs text-white font-black font-mono focus:border-[#359FA0] focus:outline-hidden"
                 />
               </div>
 
@@ -328,7 +498,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-amber-400 font-black">Title:</span>
+                    <span className="text-white font-black">Title:</span>
                     <span className="text-[10px] text-slate-300 font-semibold">
                       (Updates Filename instantly in sync)
                     </span>
@@ -351,14 +521,14 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
                   value={item.title}
                   onChange={(e) => onUpdateItem(item.id, { title: e.target.value })}
                   placeholder="Enter or generate title..."
-                  className="w-full bg-[#0b0f17] border-2 border-[#283854] rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-400 font-bold focus:border-[#FF0000] focus:outline-hidden resize-none leading-relaxed"
+                  className="w-full bg-[#0b0f17] border-2 border-[#283854] rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-400 font-bold focus:border-[#359FA0] focus:outline-hidden resize-none leading-relaxed"
                 />
               </div>
 
               {/* Description Field */}
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-amber-400 font-black">Description:</span>
+                  <span className="text-white font-black">Description:</span>
                   <button
                     type="button"
                     onClick={() => handleCopy('description', item.description)}
@@ -377,14 +547,14 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
                   value={item.description}
                   onChange={(e) => onUpdateItem(item.id, { description: e.target.value })}
                   placeholder="Enter or generate description..."
-                  className="w-full bg-[#0b0f17] border-2 border-[#283854] rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-400 font-bold focus:border-[#FF0000] focus:outline-hidden resize-none leading-relaxed"
+                  className="w-full bg-[#0b0f17] border-2 border-[#283854] rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-400 font-bold focus:border-[#359FA0] focus:outline-hidden resize-none leading-relaxed"
                 />
               </div>
 
               {/* Keywords Field */}
               <div>
                 <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="text-amber-400 font-black">
+                  <span className="text-white font-black">
                     Keywords: ({item.keywords ? item.keywords.length : 0})
                   </span>
                   <button
@@ -406,7 +576,7 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
                     {item.keywords.map((kw, i) => (
                       <span
                         key={i}
-                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#141d2e] border-1.5 border-[#304160] text-[11px] text-white font-bold"
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#141d2e] border-1.5 border-[#304160] hover:border-[#359FA0] text-[11px] text-white font-bold"
                       >
                         {kw}
                         <button
@@ -431,6 +601,13 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
             </div>
           </div>
         </div>
+
+        {/* Full Preview Lightbox Modal */}
+        <FullPreviewModal
+          isOpen={isFullPreviewOpen}
+          onClose={() => setIsFullPreviewOpen(false)}
+          item={item}
+        />
       </div>
     );
   }

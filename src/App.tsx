@@ -19,6 +19,8 @@ import { loadStoredKeys, getNextAvailableKey, markKeyRateLimited } from './utils
 import { buildCsvString, downloadCsvFile } from './utils/csvExporter';
 import { loadAdminLinks, saveAdminLinks } from './utils/adminManager';
 import { titleToFilename } from './utils/filenameHelper';
+import { downloadAllAsZip } from './utils/zipExporter';
+import { extractEpsVisualPreview } from './utils/epsPreviewHelper';
 import { Image as ImageIcon, Box } from 'lucide-react';
 
 const USER_STORAGE_KEY = 'ss_smart_meta_user';
@@ -78,6 +80,7 @@ export default function App() {
     transparentBackground: true,
     silhouette: true,
     singleWordKeywords: true,
+    selectedModel: 'gemini-3.8-flash',
   });
 
   // Uploaded / queued images: INITIAL STATE IS EMPTY! (Only shown when files are loaded)
@@ -154,7 +157,27 @@ export default function App() {
       });
     }
 
+    // Instantly display selected files on the screen in 0 milliseconds!
     setItems((prev) => [...prev, ...newItems]);
+
+    // Asynchronously rasterize EPS vector artwork in background without freezing the UI
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
+      const extension = file.name.split('.').pop()?.toUpperCase() || 'JPG';
+      const itemId = newItems[i].id;
+
+      if (extension === 'EPS') {
+        extractEpsVisualPreview(file)
+          .then((epsVisual) => {
+            if (epsVisual) {
+              setItems((prev) =>
+                prev.map((it) => (it.id === itemId ? { ...it, previewUrl: epsVisual } : it))
+              );
+            }
+          })
+          .catch((e) => console.warn('Async EPS preview error:', e));
+      }
+    }
   };
 
   // Load sample items for instant demonstration
@@ -221,56 +244,260 @@ export default function App() {
     );
   }, []);
 
-  // Client-side instant stock metadata synthesizer (Zero-error guarantee)
-  const synthesizeInstantMetadata = (filename: string, platform: PlatformType) => {
-    const rawName = filename.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ').trim();
-    let subject = rawName
-      .split(' ')
-      .filter((w) => w.length > 0)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
+  // Client-side intelligent stock metadata synthesizer (Context-Aware Multi-Domain Classifier)
+  const synthesizeInstantMetadata = (filename: string, _platform: PlatformType) => {
+    const rawName = filename.replace(/\.[^/.]+$/, '');
+    const stripped = rawName
+      .replace(/[\(\)\[\]\{\}\-_0-9]/g, ' ')
+      .replace(/\b(img|dsc|photo|image|pic|asset|sample|file|untitled|vector|eps|svg|png|jpg|jpeg)\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
-    if (!subject || subject.length < 3 || /^\d+$/.test(subject)) {
-      subject = 'Wildlife Nature and Outdoor Landscape';
+    const words = stripped.split(' ').filter((w) => w.length > 0);
+    const subject =
+      words.length > 0
+        ? words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+        : 'Minimalist Graphic Design Element';
+
+    const isVideo = Boolean(filename.match(/\.(mp4|webm|mov)$/i));
+    const isVector = Boolean(filename.match(/\.(svg|eps|ai)$/i));
+
+    const lower = (subject + ' ' + filename + ' ' + (settings.customPrompt || '')).toLowerCase();
+
+    let category = 'Design & Graphic Elements';
+    let title = `${subject} Vector Graphic, Scalable Illustration in Modern Clean Style`;
+    let description = `High quality commercial vector illustration featuring ${subject.toLowerCase()}. Crafted with clean anchor points, scalable vectors, and optimal composition for print and digital media.`;
+    let domainTags: string[] = [];
+
+    // 1. Coding & Software Development / Technology
+    if (lower.match(/\b(coding|code|developer|programmer|programming|software|html|css|javascript|python|symbol|bracket|brackets|slash|syntax|algorithm|terminal|tech|technology|computer|digital|cyber|network|internet|web|api|data|screen)\b/i)) {
+      category = 'Technology';
+      title = isVector
+        ? `${subject} Vector Graphic, Scalable Programming Symbol Illustration`
+        : `${subject}, Technology and Software Concept`;
+      description = `Minimalist coding symbol featuring clean typography and syntax elements. Professional commercial scalable graphic suitable for web development, programming concepts, technology UI design, and digital software projects.`;
+      domainTags = [
+        'coding', 'programming', 'developer', 'code', 'software', 'technology', 'symbol',
+        'brackets', 'curly-brackets', 'curly-braces', 'slash', 'syntax', 'web-development',
+        'html', 'css', 'javascript', 'minimalist', 'black', 'white-background', 'icon',
+        'graphic', 'vector', 'clean', 'modern', 'emblem', 'sign', 'concept', 'computer',
+        'digital', 'element', 'isolated', 'app', 'interface', 'ui', 'design', 'template',
+        'software-engineering', 'backend', 'frontend', 'computing', 'script', 'algorithm', 'coder'
+      ];
+    }
+    // 2. Animals & Wildlife
+    else if (lower.match(/\b(lion|animal|animals|tiger|dog|cat|bird|birds|wildlife|safari|nature|fauna|mammal|zoo|elephant|horse|fish|insect|butterfly|bear|wolf|fox)\b/i)) {
+      category = 'Animals';
+      title = isVideo
+        ? `${subject} in Natural Habitat, Majestic Wildlife Cinematic Footage in Outdoor Setting`
+        : isVector
+        ? `${subject} Vector Graphic, Scalable Wildlife Animal Illustration`
+        : `${subject} in Natural Habitat, Wildlife Animal Photography in Outdoor Setting`;
+      description = `Professional commercial stock asset featuring ${subject.toLowerCase()} in an authentic natural habitat. Captured with balanced lighting and optimal composition for editorial and commercial use.`;
+      domainTags = [
+        'wildlife', 'animal', 'nature', 'outdoor', 'portrait', 'safari', 'mammal',
+        'predator', 'savanna', 'wilderness', 'habitat', 'grassland', 'sunlight',
+        'composition', 'authentic', 'fauna', 'wild', 'majestic', 'natural', 'light',
+        'view', 'color', 'scenic', 'environment', 'nationalpark', 'serengeti', 'africa',
+        'carnivore', 'hunter', 'danger', 'endangered', 'mane', 'strength', 'fur', 'biodiversity'
+      ];
+    }
+    // 3. Landscapes & Outdoor Nature
+    else if (lower.match(/\b(sunset|sunrise|mountain|mountains|landscape|ocean|sea|beach|forest|lake|river|sky|clouds|scenery|scenic|park|waterfall|desert)\b/i)) {
+      category = 'Landscapes';
+      title = `Scenic ${subject} Panoramic View, Beautiful Nature Landscape in Golden Hour Lighting`;
+      description = `Breathtaking outdoor landscape featuring scenic ${subject.toLowerCase()}. Ideal for travel editorial, background wallpaper, and environmental publications.`;
+      domainTags = [
+        'landscape', 'nature', 'scenic', 'sunset', 'sky', 'outdoor', 'mountain',
+        'horizon', 'sunlight', 'view', 'travel', 'dramatic', 'evening', 'golden-hour',
+        'panoramic', 'tourism', 'environment', 'scenery', 'tranquil', 'peaceful', 'clouds',
+        'majestic', 'wilderness', 'destination', 'reflection', 'natural'
+      ];
+    }
+    // 4. People & Lifestyle
+    else if (lower.match(/\b(person|people|man|woman|women|men|girl|boy|child|kid|portrait|model|face|smile|team|worker|doctor|nurse|businessperson)\b/i)) {
+      category = 'People';
+      title = `Portrait of ${subject}, Authentic Lifestyle and Professional Studio Photography`;
+      description = `Authentic commercial portrait of ${subject.toLowerCase()} with natural expression and professional studio lighting. Suitable for advertising and creative media.`;
+      domainTags = [
+        'people', 'portrait', 'person', 'lifestyle', 'adult', 'happy', 'model',
+        'cheerful', 'attractive', 'expression', 'young', 'looking', 'smiling',
+        'one-person', 'face', 'confidence', 'pose', 'professional', 'emotion', 'standing'
+      ];
+    }
+    // 5. Food & Drink
+    else if (lower.match(/\b(food|drink|coffee|tea|fruit|fruits|vegetable|vegetables|meal|dish|cooking|kitchen|dessert|cake|bread|breakfast|dinner|lunch|restaurant)\b/i)) {
+      category = 'Food & Drink';
+      title = `Fresh Delicious ${subject}, Gourmet Culinary Preparation on Table`;
+      description = `Appetizing culinary stock presentation of ${subject.toLowerCase()} with vibrant fresh colors and shallow depth of field for menu and recipe editorial.`;
+      domainTags = [
+        'food', 'delicious', 'gourmet', 'fresh', 'healthy', 'ingredient', 'cuisine',
+        'meal', 'nutrition', 'tasty', 'snack', 'eating', 'organic', 'diet', 'homemade',
+        'culinary', 'plate', 'kitchen', 'restaurant', 'sweet', 'vegetable', 'fruit'
+      ];
+    }
+    // 6. Business & Corporate
+    else if (lower.match(/\b(business|finance|corporate|money|currency|investment|stock|market|office|banking|chart|graph|economic|meeting|professional)\b/i)) {
+      category = 'Business';
+      title = `${subject} Corporate Concept, Professional Business Strategy and Financial Growth`;
+      description = `Modern corporate commercial stock asset representing ${subject.toLowerCase()}. Perfect for annual reports, executive presentations, and marketing collateral.`;
+      domainTags = [
+        'business', 'corporate', 'office', 'finance', 'success', 'strategy', 'marketing',
+        'investment', 'professional', 'work', 'workplace', 'growth', 'concept', 'management',
+        'leadership', 'teamwork', 'financial', 'executive', 'commercial', 'economy'
+      ];
+    }
+    // 7. General Vector / Graphic Elements Fallback
+    else {
+      category = isVector ? 'Design & Graphic Elements' : 'General';
+      title = isVector
+        ? `${subject} Scalable Vector Graphic, Clean Modern Stock Illustration`
+        : `${subject}, Professional Stock Photography Composition`;
+      description = `High quality commercial stock asset featuring ${subject.toLowerCase()}. Crafted with balanced composition and clean aesthetic for multipurpose creative projects.`;
+      domainTags = [
+        'design', 'graphic', 'vector', 'illustration', 'element', 'symbol', 'icon',
+        'minimalist', 'modern', 'clean', 'background', 'isolated', 'white', 'template',
+        'creative', 'art', 'concept', 'digital', 'composition', 'commercial', 'scalable'
+      ];
     }
 
-    const sampleKeywords = [
-      'wildlife', 'animal', 'nature', 'outdoor', 'portrait', 'safari', 'mammal',
-      'predator', 'savanna', 'wilderness', 'habitat', 'grassland', 'sunlight',
-      'photography', 'composition', 'authentic', 'fauna', 'wild', 'majestic',
-      'natural', 'light', 'view', 'focus', 'color', 'scenic', 'environment'
-    ];
+    if (isVideo) {
+      domainTags.unshift('video', 'footage', 'clip', 'motion', 'cinematic', '4k', 'slowmotion', 'broll');
+    } else if (isVector) {
+      domainTags.unshift('vector', 'illustration', 'graphic', 'eps', 'svg', 'scalable', 'clipart', 'design');
+    }
+
+    if (settings.transparentBackground) {
+      domainTags.push('isolated', 'transparent', 'cutout', 'png', 'alpha');
+    }
+    if (settings.silhouette) {
+      domainTags.push('silhouette', 'shadow', 'contrast', 'outline', 'shape');
+    }
 
     const targetKws = settings.singleWordKeywords
-      ? sampleKeywords.map((k) => k.replace(/[-\s]+/g, ''))
-      : sampleKeywords;
-
-    const title = `${subject} in Natural Habitat, Majestic Wildlife Animal Photography in Outdoor Setting`;
-    const description = `Professional commercial stock asset featuring ${subject.toLowerCase()} in an authentic natural environment. Captured with balanced lighting and optimal composition for microstock advertising and editorial media.`;
+      ? domainTags.map((k) => k.replace(/[-\s]+/g, ''))
+      : domainTags;
 
     return {
       title,
       description,
-      keywords: targetKws.slice(0, settings.keywordsMax || 49),
-      category: 'Animals',
+      keywords: Array.from(new Set(targetKws)).slice(0, settings.keywordsMax || 48),
+      category,
     };
   };
 
   /**
-   * Downscales image to max 1200px before sending to Gemini vision API.
-   * This guarantees ultra-fast upload (100-200KB vs 15MB), zero payload size errors,
-   * and high accuracy for Gemini visual analysis.
+   * Generates a high-accuracy optimized visual snapshot (max 1200px)
+   * for Images, Vectors, and Videos before sending to Gemini Vision API.
+   * For Videos: Extracts an actual action frame at 1.0s using HTML5 Video + Canvas.
+   * For Vectors & Images: Downscales to 1200px max JPEG for instant processing.
    */
   const getOptimizedBase64 = async (item: ImageItem): Promise<string> => {
     if (item.base64 && item.base64.length > 50) return item.base64;
+
+    const isVideo =
+      ['MP4', 'WEBM', 'MOV', 'VIDEO'].includes(item.format?.toUpperCase()) ||
+      Boolean(item.mimeType?.startsWith('video/')) ||
+      Boolean(item.name.match(/\.(mp4|webm|mov)$/i));
+
+    // 1. VIDEO FRAME EXTRACTION
+    if (isVideo) {
+      return new Promise((resolve) => {
+        try {
+          const video = document.createElement('video');
+          video.crossOrigin = 'anonymous';
+          video.muted = true;
+          video.playsInline = true;
+          video.preload = 'metadata';
+
+          const timeout = setTimeout(() => {
+            resolve('');
+          }, 6000);
+
+          video.onloadeddata = () => {
+            // Seek to 1 second (or 10% of duration) to get an action frame
+            video.currentTime = Math.min(1.0, (video.duration || 2) * 0.1);
+          };
+
+          video.onseeked = () => {
+            clearTimeout(timeout);
+            try {
+              const canvas = document.createElement('canvas');
+              const MAX_DIM = 1200;
+              let w = video.videoWidth || 800;
+              let h = video.videoHeight || 600;
+              if (w > MAX_DIM || h > MAX_DIM) {
+                if (w > h) {
+                  h = Math.round((h * MAX_DIM) / w);
+                  w = MAX_DIM;
+                } else {
+                  w = Math.round((w * MAX_DIM) / h);
+                  h = MAX_DIM;
+                }
+              }
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(video, 0, 0, w, h);
+                const frameData = canvas.toDataURL('image/jpeg', 0.85);
+                resolve(frameData);
+                return;
+              }
+            } catch {}
+            resolve('');
+          };
+
+          video.onerror = () => {
+            clearTimeout(timeout);
+            resolve('');
+          };
+
+          video.src = item.previewUrl;
+        } catch {
+          resolve('');
+        }
+      });
+    }
+
+    // 2. IMAGE & VECTOR (SVG/EPS) SNAPSHOT
+    let targetPreview = item.previewUrl;
+    if (
+      (item.format === 'EPS' || item.name.toLowerCase().endsWith('.eps')) &&
+      (!targetPreview || !targetPreview.startsWith('data:image/')) &&
+      item.originalFile
+    ) {
+      try {
+        const epsPng = await extractEpsVisualPreview(item.originalFile);
+        if (epsPng && epsPng.startsWith('data:image/')) {
+          targetPreview = epsPng;
+          item.previewUrl = epsPng;
+        }
+      } catch (e) {
+        console.warn('EPS preview rasterization in getOptimizedBase64:', e);
+      }
+    }
+
     return new Promise((resolve) => {
+      if (!targetPreview) {
+        if (item.originalFile) {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string) || '');
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(item.originalFile);
+          return;
+        }
+        resolve('');
+        return;
+      }
+
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
         try {
           const MAX_DIM = 1200;
-          let w = img.naturalWidth || img.width;
-          let h = img.naturalHeight || img.height;
+          let w = img.naturalWidth || img.width || 800;
+          let h = img.naturalHeight || img.height || 600;
           if (w > MAX_DIM || h > MAX_DIM) {
             if (w > h) {
               h = Math.round((h * MAX_DIM) / w);
@@ -289,20 +516,29 @@ export default function App() {
             resolve(canvas.toDataURL('image/jpeg', 0.85));
             return;
           }
-        } catch {}
-        resolve(item.previewUrl);
+        } catch (e) {
+          console.warn('Canvas resize error in getOptimizedBase64:', e);
+        }
+        if (item.originalFile) {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string) || '');
+          reader.onerror = () => resolve(targetPreview.startsWith('data:image/') ? targetPreview : '');
+          reader.readAsDataURL(item.originalFile);
+        } else {
+          resolve(targetPreview.startsWith('data:image/') ? targetPreview : '');
+        }
       };
       img.onerror = () => {
         if (item.originalFile) {
-          const r = new FileReader();
-          r.onload = () => resolve(r.result as string);
-          r.onerror = () => resolve('');
-          r.readAsDataURL(item.originalFile);
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string) || '');
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(item.originalFile);
         } else {
           resolve('');
         }
       };
-      img.src = item.previewUrl;
+      img.src = targetPreview;
     });
   };
 
@@ -360,6 +596,7 @@ export default function App() {
               silhouette: settings.silhouette,
               singleWordKeywords: settings.singleWordKeywords,
               apiKey: apiKeyToUse,
+              selectedModel: settings.selectedModel,
             }),
           });
 
@@ -497,6 +734,31 @@ export default function App() {
     downloadCsvFile(csv, `SS_SMART_META_2_${selectedPlatform}_${Date.now()}.csv`);
   };
 
+  // ZIP state & 1-Click All Images ZIP Export
+  const [isZipping, setIsZipping] = useState(false);
+  const [zipToast, setZipToast] = useState<string | null>(null);
+
+  const handleDownloadAllZip = async () => {
+    const readyItems = items.filter((i) => i.title || (i.keywords && i.keywords.length > 0));
+    if (readyItems.length === 0) {
+      alert('Please upload images and generate metadata first before downloading ZIP.');
+      return;
+    }
+    setIsZipping(true);
+    setZipToast('Packaging ZIP with 100% original resolution & embedded metadata...');
+    try {
+      await downloadAllAsZip(readyItems, selectedPlatform, (pct, msg) => {
+        setZipToast(`${msg} (${pct}%)`);
+      });
+      setTimeout(() => setZipToast(null), 4000);
+    } catch (err: any) {
+      alert(`ZIP creation failed: ${err?.message || 'Failed to create ZIP'}`);
+      setZipToast(null);
+    } finally {
+      setIsZipping(false);
+    }
+  };
+
   // Apply batch edits
   const handleApplyBatchEdit = (updates: {
     appendKeywords?: string[];
@@ -534,7 +796,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f17] text-white flex flex-col antialiased selection:bg-[#FF0000] selection:text-white">
+    <div className="min-h-screen bg-[#0b0f17] text-white flex flex-col antialiased selection:bg-[#359FA0] selection:text-white">
       {/* 1. Header (SS SMART META 2) */}
       <Header
         onOpenTutorial={() => setIsHelpOpen(true)}
@@ -584,6 +846,16 @@ export default function App() {
                   onLoadSamples={handleLoadSamples}
                 />
 
+                {/* Floating ZIP / Toast Notification */}
+                {zipToast && (
+                  <div className="p-3 rounded-2xl bg-amber-950/90 border-2 border-amber-500 text-amber-200 text-xs font-black flex items-center justify-between shadow-[0_0_20px_rgba(245,158,11,0.5)] animate-bounce">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                      <span>{zipToast}</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Generated Data Counters Bar */}
                 <CountersBar
                   successCount={successCount}
@@ -593,6 +865,8 @@ export default function App() {
                   onFormatFilterChange={setFormatFilter}
                   onDownloadAllCsv={handleDownloadAllCsv}
                   onEmbedMetadata={() => setShowEmbedModal(true)}
+                  onDownloadZip={handleDownloadAllZip}
+                  isZipping={isZipping}
                   onClearAll={handleClearAll}
                   totalCount={items.length}
                 />
@@ -625,8 +899,8 @@ export default function App() {
                 {/* Empty State Card: Clean Initial State */}
                 {items.length === 0 && (
                   <div className="rounded-2xl bg-[#101522] border border-[#20293d] p-10 flex flex-col items-center justify-center text-center shadow-md my-4">
-                    <div className="w-12 h-12 rounded-xl bg-[#182133] border border-[#24334f] flex items-center justify-center text-slate-300 mb-3 shadow-[0_0_12px_rgba(255,0,0,0.3)]">
-                      <ImageIcon className="w-6 h-6 text-[#FF1A1A]" />
+                    <div className="w-12 h-12 rounded-xl bg-[#0d2223] border border-[#359FA0] flex items-center justify-center text-slate-300 mb-3 shadow-[0_0_12px_rgba(53,159,160,0.3)]">
+                      <ImageIcon className="w-6 h-6 text-[#359FA0]" />
                     </div>
                     <h4 className="text-base font-black text-white mb-1">
                       No assets uploaded yet
@@ -657,6 +931,8 @@ export default function App() {
                   <ExportFooter
                     onPreviewCsv={() => setIsPreviewCsvOpen(true)}
                     onExportCsv={handleDownloadAllCsv}
+                    onDownloadZip={handleDownloadAllZip}
+                    isZipping={isZipping}
                     disabled={items.length === 0}
                     platformName={selectedPlatform}
                   />
@@ -677,11 +953,11 @@ export default function App() {
           {/* Footer */}
           <footer className="w-full py-4 text-center border-t border-[#161d2d] bg-[#090d14] text-xs font-bold text-slate-200 mt-6 select-none">
             <span>Developed by </span>
-            <strong className="text-white hover:text-[#FF1A1A] transition-colors cursor-pointer">
+            <strong className="text-white hover:text-[#359FA0] transition-colors cursor-pointer">
               Ponkoj Das
             </strong>
             <span className="mx-2 text-slate-500">•</span>
-            <span className="text-[#FF1A1A]">{adminLinks.siteName}</span>
+            <span className="text-[#359FA0]">{adminLinks.siteName}</span>
           </footer>
         </main>
       </div>
@@ -693,6 +969,8 @@ export default function App() {
         onClose={() => setIsApiKeysOpen(false)}
         storedKeys={storedKeys}
         onKeysUpdated={setStoredKeys}
+        selectedModel={settings.selectedModel}
+        onSelectModel={(model) => handleUpdateSettings({ selectedModel: model })}
       />
 
       {/* 2. Preview CSV Modal */}

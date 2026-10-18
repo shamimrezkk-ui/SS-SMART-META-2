@@ -8,14 +8,16 @@ import {
   Loader2,
   AlertCircle,
   FileCheck,
-  Download,
   ShieldCheck,
   Check,
   Sparkles,
+  Archive,
+  Star,
 } from 'lucide-react';
 import { ImageItem, PlatformType } from '../types';
-import { embedMetadataInBytes, downloadEmbeddedImage } from '../utils/metadataEmbedder';
+import { embedMetadataInBytes } from '../utils/metadataEmbedder';
 import { titleToFilename } from '../utils/filenameHelper';
+import { downloadAllAsZip } from '../utils/zipExporter';
 
 interface EmbedMetadataModalProps {
   isOpen: boolean;
@@ -55,12 +57,12 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
 
     try {
       if ('showDirectoryPicker' in window) {
-        setStatusMessage('Please select your source images folder to embed directly in-place...');
+        setStatusMessage('Please select your source folder to save metadata directly in-place...');
         const dirHandle = await (window as any).showDirectoryPicker({
           mode: 'readwrite',
         });
 
-        setStatusMessage('Folder connected. Writing EXIF, IPTC, XMP directly into files in-place...');
+        setStatusMessage('Folder connected. Writing 5-Star Rating, Title & Keywords directly into files in-place...');
 
         let count = 0;
         const doneNames: string[] = [];
@@ -72,10 +74,10 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
           const oldName = item.originalName || item.name;
           const targetName = renameFileWithTitle ? titleToFilename(item.title, item.name) : oldName;
 
-          setStatusMessage(`Embedding metadata into "${oldName}" in-place...`);
+          setStatusMessage(`Embedding metadata & 5-Star rating into "${oldName}" in-place...`);
 
           try {
-            // Locate existing file handle in folder
+            // Locate existing file in folder
             let sourceBuffer: ArrayBuffer | null = null;
             let fileFound = false;
 
@@ -86,7 +88,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
               fileFound = true;
             } catch {
               try {
-                // Try targetName in case it was previously renamed
+                // Try targetName in case it was already named with targetName
                 const h = await dirHandle.getFileHandle(targetName, { create: false });
                 const f = await h.getFile();
                 sourceBuffer = await f.arrayBuffer();
@@ -109,7 +111,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
               }
             }
 
-            // Fallback to in-memory originalFile if present
+            // Fallback to in-memory originalFile
             if (!sourceBuffer && item.originalFile) {
               sourceBuffer = await item.originalFile.arrayBuffer();
               fileFound = true;
@@ -117,7 +119,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
 
             if (fileFound && sourceBuffer) {
               const uint8 = new Uint8Array(sourceBuffer);
-              // Embed full metadata: EXIF (XP tags for Windows Explorer), IPTC IIM (8BIM for Adobe), XMP (Dublin Core)
+              // Embed full metadata with 5-Star Rating (EXIF, IPTC, XMP with xmp:Rating="5" and MicrosoftPhoto:Rating="99")
               const embeddedBytes = embedMetadataInBytes(
                 uint8,
                 item.title || item.name,
@@ -130,19 +132,24 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
               const writable = await newHandle.createWritable();
               await writable.write(
                 new Blob([embeddedBytes.buffer as ArrayBuffer], {
-                  type: item.format === 'PNG' ? 'image/png' : 'image/jpeg',
+                  type:
+                    item.format === 'PNG'
+                      ? 'image/png'
+                      : item.format === 'EPS'
+                      ? 'application/postscript'
+                      : 'image/jpeg',
                 })
               );
               await writable.close();
 
-              // If name changed, remove the old file entry to prevent duplicates
+              // If name changed, remove the old file entry so there are no duplicates
               if (targetName !== oldName) {
                 try {
                   await dirHandle.removeEntry(oldName);
                 } catch {}
               }
 
-              // Update state in app
+              // Update state in app so UI immediately reflects the new name!
               if (onUpdateItem) {
                 onUpdateItem(item.id, { name: targetName, originalName: targetName });
               }
@@ -150,8 +157,8 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
               count++;
               doneNames.push(
                 renameFileWithTitle
-                  ? `✓ "${oldName}" ➜ "${targetName}" [EXIF, IPTC & XMP Set In-Place]`
-                  : `✓ "${oldName}" [EXIF, IPTC & XMP Saved Directly Inside File]`
+                  ? `✓ "${oldName}" ➜ "${targetName}" [5★ Rating, EXIF, IPTC & XMP Saved In-Place]`
+                  : `✓ "${oldName}" [5★ Rating, EXIF, IPTC & XMP Saved Directly Inside File]`
               );
               setCompletedCount(count);
             } else {
@@ -168,7 +175,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
 
         setIsFinished(true);
         setStatusMessage(
-          `Success! ${count} files updated in-place with Title, Description & Keywords. ZERO downloads!`
+          `Success! ${count} files updated in-place with 5-Star Rating, Title & Keywords. ZERO downloads!`
         );
       } else {
         setStatusMessage(
@@ -186,35 +193,23 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
     }
   };
 
-  // Direct batch download of image files with embedded metadata
-  const handleDownloadAllImages = async () => {
+  // 1-Click All Images ZIP Export (Packages everything in ONE single .zip file - ZERO 1-by-1 downloads!)
+  const handleDownloadAllZip = async () => {
     setIsDownloadingAll(true);
-    setStatusMessage('Downloading images with embedded EXIF, IPTC & XMP metadata...');
+    setStatusMessage('Embedding 5-Star Rating, metadata and packaging all files into single ZIP archive...');
     setCompletedCount(0);
     setCompletedList([]);
     setIsFinished(false);
 
     try {
-      let count = 0;
-      const doneNames: string[] = [];
-      for (let i = 0; i < validItems.length; i++) {
-        const item = validItems[i];
-        setCurrentFileIndex(i + 1);
-        setStatusMessage(`Embedding & saving "${item.name}" (${i + 1}/${validItems.length})...`);
-        const targetName = await downloadEmbeddedImage(item);
-        count++;
-        doneNames.push(`✓ "${item.name}" ➜ "${targetName}" [Downloaded with EXIF, IPTC & XMP]`);
-        if (onUpdateItem) {
-          onUpdateItem(item.id, { name: targetName });
-        }
-        setCompletedCount(count);
-        setCompletedList([...doneNames]);
-        await new Promise((r) => setTimeout(r, 200));
-      }
+      await downloadAllAsZip(validItems, platform, (pct, msg) => {
+        setStatusMessage(msg);
+        setCompletedCount(Math.round((pct / 100) * validItems.length));
+      });
       setIsFinished(true);
-      setStatusMessage(`Completed! ${count} image files downloaded with full embedded metadata.`);
+      setStatusMessage(`Completed! All ${validItems.length} media files packaged into one single ZIP with 5-Star ratings and embedded metadata.`);
     } catch (e: any) {
-      setStatusMessage(`Download error: ${e?.message || 'Failed to download files'}`);
+      setStatusMessage(`ZIP error: ${e?.message || 'Failed to download ZIP'}`);
     } finally {
       setIsDownloadingAll(false);
     }
@@ -222,19 +217,19 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-4 select-none">
-      <div className="bg-[#101522] border-2 border-[#FF0000] rounded-2xl max-w-xl w-full p-6 text-white shadow-[0_0_35px_rgba(255,0,0,0.35)] max-h-[90vh] flex flex-col">
+      <div className="bg-[#101522] border-2 border-[#359FA0] rounded-2xl max-w-xl w-full p-6 text-white shadow-[0_0_35px_rgba(53,159,160,0.35)] max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b-2 border-[#202c42] mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#1d1017] border-2 border-[#FF0000] flex items-center justify-center text-[#FF1A1A] shadow-[0_0_12px_rgba(255,0,0,0.4)]">
-              <Box className="w-5 h-5 text-[#FF1A1A]" />
+            <div className="w-10 h-10 rounded-xl bg-[#0d2223] border-2 border-[#359FA0] flex items-center justify-center text-[#359FA0] shadow-[0_0_12px_rgba(53,159,160,0.4)]">
+              <Box className="w-5 h-5 text-[#359FA0]" />
             </div>
             <div>
               <h3 className="text-base font-black text-white tracking-wide">
-                IN-PLACE METADATA & TITLE EMBEDDER
+                IN-PLACE METADATA & 5-STAR RATING EMBEDDER
               </h3>
               <p className="text-xs text-slate-200 font-bold">
-                Zero Downloads. Metadata & Title-synced filenames are saved directly in your folder.
+                Zero Downloads. Metadata, 5-Star Ratings & Title filenames are saved directly in your folder.
               </p>
             </div>
           </div>
@@ -253,20 +248,27 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
           <div className="bg-[#0b0f17] border-2 border-[#222f46] rounded-xl p-3.5 space-y-2.5">
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-300">Target Agency:</span>
-              <span className="text-[#FF1A1A] font-black">{platform}</span>
+              <span className="text-[#359FA0] font-black">{platform}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-300">Ready Files:</span>
               <span className="text-emerald-400 font-black">{validItems.length} Files with Metadata</span>
             </div>
             <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-300">5-Star Rating:</span>
+              <span className="text-amber-400 font-black flex items-center gap-1">
+                <Star className="w-3.5 h-3.5 fill-amber-400" />
+                <span>★★★★★ 5-Stars Embedded (EXIF & XMP)</span>
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
               <span className="text-slate-300">Filename Option:</span>
-              <label className="flex items-center gap-2 cursor-pointer select-none text-amber-300 hover:text-white">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-[#42B4B5] hover:text-white">
                 <input
                   type="checkbox"
                   checked={renameFileWithTitle}
                   onChange={(e) => setRenameFileWithTitle(e.target.checked)}
-                  className="w-4 h-4 rounded border-[#344666] text-[#FF0000] focus:ring-0 accent-[#FF0000] cursor-pointer"
+                  className="w-4 h-4 rounded border-[#344666] text-[#359FA0] focus:ring-0 accent-[#359FA0] cursor-pointer"
                 />
                 <span className="text-xs">
                   {renameFileWithTitle
@@ -281,21 +283,21 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
             </div>
             <div className="flex items-center justify-between text-xs pt-1 border-t border-[#1e273a]">
               <span className="text-slate-300">Tags Written:</span>
-              <span className="text-cyan-400 font-black">EXIF (XPTitle, XPKeywords) + IPTC + XMP</span>
+              <span className="text-[#42B4B5] font-black">EXIF (Rating 5, XPTitle, XPKeywords) + IPTC + XMP (Rating 5)</span>
             </div>
           </div>
 
           {/* Explanation Box */}
           <div className="p-3.5 rounded-xl bg-[#161d2d] border-2 border-[#283854] space-y-2">
             <div className="flex items-center gap-2 text-white font-black">
-              <HardDrive className="w-4 h-4 text-[#FF1A1A]" />
+              <HardDrive className="w-4 h-4 text-[#359FA0]" />
               <span>Direct In-Place Execution (No Browser Downloads):</span>
             </div>
             <p className="text-slate-200 text-[11px] leading-relaxed">
-              When you click the button below, select your image folder. The app writes <strong>Windows Details (XPTitle, XPKeywords, Comments)</strong>, <strong>IPTC IIM (8BIM)</strong>, and <strong>Adobe XMP</strong> directly into each file on disk. <strong>No file will be downloaded through your browser!</strong>
+              When you click the button below, select your image folder. The app writes <strong>5-Star Ratings (Rating: 5, RatingPercent: 99)</strong>, <strong>Windows Details (XPTitle, XPKeywords)</strong>, <strong>IPTC IIM</strong>, and <strong>Adobe XMP</strong> directly into each file on disk. <strong>No individual files will be downloaded through your browser!</strong>
             </p>
-            <div className="bg-[#0f1523] border border-[#23324d] rounded-lg p-2 text-[11px] text-emerald-300 font-mono">
-              ✓ যে ফোল্ডারে ফাইল আছে ঠিক সেই ফাইলের ভেতরেই মেটাডাটা সরাসরি সেভ হবে। ফাইলের কোয়ালিটি বা ফরম্যাট হুবহু অক্ষত থাকবে।
+            <div className="bg-[#0f1523] border border-[#23324d] rounded-lg p-2 text-[11px] text-[#42B4B5] font-mono">
+              ✓ যে ফোল্ডারে ফাইল আছে ঠিক সেই ফাইলের ভেতরেই মেটাডাটা ও ৫-স্টার রেটিং সরাসরি সেভ হবে। ফাইলের কোয়ালিটি বা ফরম্যাট হুবহু অক্ষত থাকবে।
             </div>
           </div>
 
@@ -310,7 +312,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
             >
               <div className="flex items-center gap-2 text-white">
                 {isEmbedding ? (
-                  <Loader2 className="w-4 h-4 text-[#FF1A1A] animate-spin shrink-0" />
+                  <Loader2 className="w-4 h-4 text-[#359FA0] animate-spin shrink-0" />
                 ) : isFinished ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 ) : (
@@ -322,7 +324,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
               {isEmbedding && (
                 <div className="w-full bg-[#0b0f17] h-2.5 rounded-full overflow-hidden border border-[#2b3a56]">
                   <div
-                    className="h-full bg-gradient-to-r from-[#FF0000] to-[#FF4D4D] transition-all duration-200 shadow-[0_0_8px_#FF0000]"
+                    className="h-full bg-gradient-to-r from-[#359FA0] to-[#42B4B5] transition-all duration-200 shadow-[0_0_8px_#359FA0]"
                     style={{
                       width: `${(currentFileIndex / Math.max(1, validItems.length)) * 100}%`,
                     }}
@@ -359,24 +361,24 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
             {isFinished ? 'Close' : 'Cancel'}
           </button>
 
-          <div className="flex items-center gap-2">
-            {/* Direct Download Files with Embedded Metadata */}
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* 1-Click Embed & Download All in Single ZIP (No one-by-one downloads) */}
             <button
               type="button"
               disabled={isEmbedding || isDownloadingAll || validItems.length === 0}
-              onClick={handleDownloadAllImages}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-[#0d1e17] border-2 border-emerald-500/80 hover:border-emerald-400 text-emerald-400 text-xs font-black rounded-xl cursor-pointer shadow-[0_0_10px_rgba(16,185,129,0.25)] disabled:opacity-50"
-              title="Download image files directly with embedded metadata"
+              onClick={handleDownloadAllZip}
+              className="flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 border-2 border-amber-400 text-white text-xs font-black rounded-xl cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.5)] hover:shadow-[0_0_22px_rgba(245,158,11,0.7)] disabled:opacity-50"
+              title="Download all media files packaged in a single ZIP archive (1-Click, no one-by-one downloads)"
             >
               {isDownloadingAll ? (
                 <>
-                  <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
-                  <span>Downloading...</span>
+                  <Loader2 className="w-4 h-4 text-white animate-spin" />
+                  <span>Packaging ZIP...</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4 text-emerald-400" />
-                  <span>Download All Images (Embedded)</span>
+                  <Archive className="w-4 h-4 text-white" />
+                  <span>Embed & Download All (.ZIP)</span>
                 </>
               )}
             </button>
@@ -386,7 +388,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
               type="button"
               disabled={isEmbedding || isDownloadingAll || validItems.length === 0}
               onClick={handleDirectFolderOverwrite}
-              className="flex items-center gap-2 px-5 py-2.5 btn-red-gradient text-white text-xs font-black rounded-xl cursor-pointer shadow-[0_0_15px_rgba(255,0,0,0.5)] disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 btn-teal-gradient text-white text-xs font-black rounded-xl cursor-pointer shadow-[0_0_12px_rgba(53,159,160,0.4)] disabled:opacity-50"
             >
               {isEmbedding ? (
                 <>
@@ -396,7 +398,7 @@ export const EmbedMetadataModal: React.FC<EmbedMetadataModalProps> = ({
               ) : (
                 <>
                   <FolderSync className="w-4 h-4" />
-                  <span>Select Folder & Save In-Place</span>
+                  <span>Save In-Place to Folder</span>
                 </>
               )}
             </button>

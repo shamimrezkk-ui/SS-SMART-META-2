@@ -1,13 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --primary-red: #FF0000;
-  --bright-red: #FF1A1A;
-  --dark-red: #B00000;
-  --deep-red: #7A0000;
-  --red-glow: rgba(255, 0, 0, 0.45);
-  --red-border: rgba(255, 0, 0, 0.85);
-  --red-gradient: linear-gradient(135deg, #FF0000, #B00000);
+  --primary-teal: #359FA0;
+  --bright-teal: #42B4B5;
+  --dark-teal: #267C7D;
+  --deep-teal: #194F50;
+  --teal-glow: rgba(53, 159, 160, 0.45);
+  --teal-border: rgba(53, 159, 160, 0.85);
+  --teal-gradient: linear-gradient(135deg, #359FA0, #267C7D);
+
+  /* Legacy aliases mapped to #359FA0 */
+  --primary-red: #359FA0;
+  --bright-red: #359FA0;
+  --dark-red: #267C7D;
+  --deep-red: #194F50;
+  --red-glow: rgba(53, 159, 160, 0.45);
+  --red-border: rgba(53, 159, 160, 0.85);
+  --red-gradient: linear-gradient(135deg, #359FA0, #267C7D);
 }
 
 body {
@@ -32,55 +41,60 @@ body {
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #FF1A1A;
-  border-color: #FF4D4D;
+  background: #359FA0;
+  border-color: #42B4B5;
 }
 
-/* Sharp Prominent Border Utilities ("Dag Gulo Sposto") */
+/* Sharp Prominent Border Utilities */
 .border-prominent {
   border: 1.5px solid #2a3854;
 }
 
+.border-prominent-teal {
+  border: 1.5px solid rgba(53, 159, 160, 0.7);
+  box-shadow: 0 0 10px rgba(53, 159, 160, 0.25);
+}
+
 .border-prominent-red {
-  border: 1.5px solid rgba(255, 26, 26, 0.7);
-  box-shadow: 0 0 10px rgba(255, 0, 0, 0.25);
+  border: 1.5px solid rgba(53, 159, 160, 0.7);
+  box-shadow: 0 0 10px rgba(53, 159, 160, 0.25);
 }
 
 .border-prominent-cyan {
-  border: 1.5px solid rgba(0, 240, 255, 0.7);
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+  border: 1.5px solid rgba(53, 159, 160, 0.7);
+  box-shadow: 0 0 10px rgba(53, 159, 160, 0.25);
 }
 
-/* Red Glow Effects */
-.red-glow {
-  box-shadow: 0 0 18px rgba(255, 0, 0, 0.4);
+/* Teal Glow Effects */
+.teal-glow, .red-glow {
+  box-shadow: 0 0 18px rgba(53, 159, 160, 0.4);
 }
 
-.red-glow-lg {
-  box-shadow: 0 0 30px rgba(255, 0, 0, 0.55);
+.teal-glow-lg, .red-glow-lg {
+  box-shadow: 0 0 30px rgba(53, 159, 160, 0.55);
 }
 
-.red-text-glow {
-  text-shadow: 0 0 12px rgba(255, 0, 0, 0.75);
+.teal-text-glow, .red-text-glow {
+  text-shadow: 0 0 12px rgba(53, 159, 160, 0.75);
 }
 
-.red-border-glow {
-  border-color: rgba(255, 0, 0, 0.85);
-  box-shadow: 0 0 12px rgba(255, 0, 0, 0.35);
+.teal-border-glow, .red-border-glow {
+  border-color: rgba(53, 159, 160, 0.85);
+  box-shadow: 0 0 12px rgba(53, 159, 160, 0.35);
 }
 
-/* Red Gradients */
-.btn-red-gradient {
-  background: linear-gradient(135deg, #FF1A1A 0%, #FF0000 50%, #B00000 100%);
-  border: 1px solid rgba(255, 100, 100, 0.5);
+/* #359FA0 Teal Gradients */
+.btn-teal-gradient, .btn-red-gradient {
+  background: linear-gradient(135deg, #359FA0 0%, #2A8384 50%, #1F696A 100%);
+  border: 1px solid rgba(66, 180, 181, 0.6);
   transition: all 0.2s ease;
 }
-.btn-red-gradient:hover {
-  background: linear-gradient(135deg, #FF3333 0%, #FF1A1A 50%, #CC0000 100%);
-  box-shadow: 0 0 20px rgba(255, 0, 0, 0.65);
+.btn-teal-gradient:hover, .btn-red-gradient:hover {
+  background: linear-gradient(135deg, #42B4B5 0%, #359FA0 50%, #267C7D 100%);
+  box-shadow: 0 0 20px rgba(53, 159, 160, 0.65);
 }
 
-/* High-Contrast Clearly Visible Slider Tracks & Lines ("Dag Gulo Sposto Dekha Jay") */
+/* High-Contrast Clearly Visible Slider Tracks & Lines */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -95,8 +109,8 @@ input[type="range"] {
 
 input[type="range"]:hover,
 input[type="range"]:focus {
-  border-color: #FF1A1A;
-  box-shadow: 0 0 10px rgba(255, 26, 26, 0.4);
+  border-color: #359FA0;
+  box-shadow: 0 0 10px rgba(53, 159, 160, 0.4);
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -105,27 +119,27 @@ input[type="range"]::-webkit-slider-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #FF1A1A;
+  background: #359FA0;
   border: 2px solid #ffffff;
   cursor: pointer;
-  box-shadow: 0 0 12px rgba(255, 0, 0, 0.85);
+  box-shadow: 0 0 12px rgba(53, 159, 160, 0.85);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.25);
-  box-shadow: 0 0 16px rgba(255, 0, 0, 1);
-  background: #ff3333;
+  box-shadow: 0 0 16px rgba(53, 159, 160, 1);
+  background: #42B4B5;
 }
 
 input[type="range"]::-moz-range-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #FF1A1A;
+  background: #359FA0;
   border: 2px solid #ffffff;
   cursor: pointer;
-  box-shadow: 0 0 12px rgba(255, 0, 0, 0.85);
+  box-shadow: 0 0 12px rgba(53, 159, 160, 0.85);
 }
 
 input[type="range"]::-moz-range-track {

@@ -11,8 +11,11 @@ import {
   Info,
   Plus,
   Minus,
+  Cpu,
+  ChevronDown,
 } from 'lucide-react';
 import { AppSettings } from '../types';
+import { GEMINI_AVAILABLE_MODELS } from '../utils/apiKeyManager';
 
 interface SidebarProps {
   onOpenApiKeys: () => void;
@@ -33,15 +36,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenHelp,
   storedKeyCount,
 }) => {
+  const currentModel = settings.selectedModel || 'gemini-3.8-flash';
+
   return (
     <aside className="w-80 shrink-0 bg-[#0d121c] border-r-2 border-[#24334c] flex flex-col h-[calc(100vh-53px)] overflow-y-auto p-3.5 space-y-4 select-none">
       {/* 1. API Keys Banner / Configure with Sharp Visible Border */}
-      <div className="bg-[#101522] border-2 border-[#283854] hover:border-[#FF0000]/70 rounded-2xl p-3 flex items-center justify-between shadow-md transition-all">
+      <div className="bg-[#101522] border-2 border-[#283854] hover:border-[#359FA0]/70 rounded-2xl p-3 flex items-center justify-between shadow-md transition-all">
         <div className="flex items-center gap-2.5">
-          <Key className="w-4 h-4 text-[#FF1A1A]" />
+          <Key className="w-4 h-4 text-[#359FA0]" />
           <span className="text-xs font-black text-white tracking-wide">API Keys</span>
           {storedKeyCount > 0 && (
-            <span className="text-[10px] bg-[#221015] border border-[#FF0000] text-[#FF1A1A] px-2 py-0.5 rounded-full font-black shadow-[0_0_6px_rgba(255,0,0,0.4)]">
+            <span className="text-[10px] bg-[#0d2223] border border-[#359FA0] text-[#359FA0] px-2 py-0.5 rounded-full font-black shadow-[0_0_6px_rgba(53,159,160,0.4)]">
               {storedKeyCount} Active
             </span>
           )}
@@ -49,7 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           type="button"
           onClick={onOpenApiKeys}
-          className="px-3.5 py-1.5 rounded-full text-xs font-black bg-[#1a0f14] border-1.5 border-[#FF0000] text-[#FF1A1A] hover:bg-[#FF0000] hover:text-white transition-all shadow-[0_0_10px_rgba(255,0,0,0.35)] cursor-pointer"
+          className="px-3.5 py-1.5 rounded-full text-xs font-black bg-[#0d2223] border-1.5 border-[#359FA0] text-[#359FA0] hover:bg-[#359FA0] hover:text-white transition-all shadow-[0_0_10px_rgba(53,159,160,0.35)] cursor-pointer"
         >
           Configure
         </button>
@@ -62,11 +67,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => onTabChange('metadata')}
           className={`flex flex-col items-center justify-center py-3 px-2 rounded-2xl text-xs font-black tracking-wider transition-all cursor-pointer ${
             activeTab === 'metadata'
-              ? 'bg-[#1a0f14] border-2 border-[#FF0000] text-[#FF1A1A] shadow-[0_0_15px_rgba(255,0,0,0.4)]'
+              ? 'bg-[#0d2223] border-2 border-[#359FA0] text-[#359FA0] shadow-[0_0_15px_rgba(53,159,160,0.4)]'
               : 'bg-[#101522] border-2 border-[#24334c] text-slate-200 hover:border-slate-400 hover:text-white'
           }`}
         >
-          <Code className="w-4 h-4 mb-1 text-[#FF1A1A]" />
+          <Code className="w-4 h-4 mb-1 text-[#359FA0]" />
           <span>METADATA</span>
         </button>
 
@@ -75,11 +80,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => onTabChange('imageToPrompt')}
           className={`flex flex-col items-center justify-center py-3 px-2 rounded-2xl text-xs font-black tracking-wider transition-all cursor-pointer ${
             activeTab === 'imageToPrompt'
-              ? 'bg-[#1a0f14] border-2 border-[#FF0000] text-[#FF1A1A] shadow-[0_0_15px_rgba(255,0,0,0.4)]'
+              ? 'bg-[#0d2223] border-2 border-[#359FA0] text-[#359FA0] shadow-[0_0_15px_rgba(53,159,160,0.4)]'
               : 'bg-[#101522] border-2 border-[#24334c] text-slate-200 hover:border-slate-400 hover:text-white'
           }`}
         >
-          <ImageIcon className="w-4 h-4 mb-1 text-[#FF1A1A]" />
+          <ImageIcon className="w-4 h-4 mb-1 text-[#359FA0]" />
           <span>IMAGE TO PROMPT</span>
         </button>
       </div>
@@ -89,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Settings Header with Toggle */}
         <div className="flex items-center justify-between pb-3 border-b-2 border-[#202c42]">
           <div className="flex items-center gap-2 text-white text-xs font-black">
-            <Sliders className="w-4 h-4 text-[#FF1A1A]" />
+            <Sliders className="w-4 h-4 text-[#359FA0]" />
             <span className="tracking-wide">Settings</span>
           </div>
           <div className="flex items-center gap-2">
@@ -98,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => onUpdateSettings({ settingsActive: !settings.settingsActive })}
               className={`w-10 h-5.5 rounded-full p-0.5 border-1.5 transition-all cursor-pointer flex items-center ${
                 settings.settingsActive
-                  ? 'bg-[#FF0000] border-[#FF4D4D] shadow-[0_0_10px_rgba(255,0,0,0.6)]'
+                  ? 'bg-[#359FA0] border-[#42B4B5] shadow-[0_0_10px_rgba(53,159,160,0.6)]'
                   : 'bg-[#1b2436] border-[#31415f]'
               }`}
             >
@@ -114,13 +119,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
+        {/* AI Model Selector (User Request: er kon figarer vitore model select korar option daw) */}
+        <div className="bg-[#0b0f17] border-1.5 border-[#24334c] rounded-xl p-3 space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-white font-black flex items-center gap-1.5">
+              <Cpu className="w-3.5 h-3.5 text-[#359FA0]" />
+              AI Model
+            </span>
+            <span className="text-[10px] text-[#42B4B5] font-black bg-[#359FA0]/15 px-1.5 py-0.5 rounded border border-[#359FA0]/40">
+              Active
+            </span>
+          </div>
+
+          <div className="relative">
+            <select
+              value={currentModel}
+              onChange={(e) => onUpdateSettings({ selectedModel: e.target.value })}
+              className="w-full bg-[#101522] border-2 border-[#283854] hover:border-[#359FA0] rounded-xl px-3 py-2 text-xs text-white font-black cursor-pointer focus:border-[#359FA0] focus:outline-hidden appearance-none"
+            >
+              {GEMINI_AVAILABLE_MODELS.map((m) => (
+                <option key={m.id} value={m.id} className="bg-[#0b0f17] text-white">
+                  {m.name} ({m.tag})
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+          <p className="text-[10px] text-slate-300 font-semibold leading-tight">
+            Selected model analyzes visual pixels for Title, Tags & Description.
+          </p>
+        </div>
+
         {/* Title Words Range Slider with Clear Lines & Kom-Beshi Buttons */}
         <div className="bg-[#0b0f17] border-1.5 border-[#24334c] rounded-xl p-3 space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="text-white font-black flex items-center gap-1.5">
               Title Words
             </span>
-            <span className="px-2 py-0.5 rounded-md bg-[#1d1016] border border-[#FF0000] text-[#FF1A1A] font-black text-[11px] shadow-[0_0_8px_rgba(255,0,0,0.3)]">
+            <span className="px-2 py-0.5 rounded-md bg-[#0d2223] border border-[#359FA0] text-[#359FA0] font-black text-[11px] shadow-[0_0_8px_rgba(53,159,160,0.3)]">
               {settings.titleWordsMin} - {settings.titleWordsMax}
             </span>
           </div>
@@ -138,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         titleWordsMin: Math.max(5, settings.titleWordsMin - 1),
                       })
                     }
-                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#FF0000] text-white flex items-center justify-center cursor-pointer text-[10px]"
+                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#359FA0] text-white flex items-center justify-center cursor-pointer text-[10px]"
                     title="Decrease Min"
                   >
                     <Minus className="w-2.5 h-2.5" />
@@ -150,7 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         titleWordsMin: Math.min(settings.titleWordsMax, settings.titleWordsMin + 1),
                       })
                     }
-                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#FF0000] text-white flex items-center justify-center cursor-pointer text-[10px]"
+                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#359FA0] text-white flex items-center justify-center cursor-pointer text-[10px]"
                     title="Increase Min"
                   >
                     <Plus className="w-2.5 h-2.5" />
@@ -184,7 +220,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         titleWordsMax: Math.max(settings.titleWordsMin, settings.titleWordsMax - 1),
                       })
                     }
-                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#FF0000] text-white flex items-center justify-center cursor-pointer text-[10px]"
+                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#359FA0] text-white flex items-center justify-center cursor-pointer text-[10px]"
                     title="Decrease Max"
                   >
                     <Minus className="w-2.5 h-2.5" />
@@ -196,7 +232,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         titleWordsMax: Math.min(120, settings.titleWordsMax + 1),
                       })
                     }
-                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#FF0000] text-white flex items-center justify-center cursor-pointer text-[10px]"
+                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#359FA0] text-white flex items-center justify-center cursor-pointer text-[10px]"
                     title="Increase Max"
                   >
                     <Plus className="w-2.5 h-2.5" />
@@ -226,7 +262,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="text-white font-black flex items-center gap-1.5">
               Keywords
             </span>
-            <span className="px-2 py-0.5 rounded-md bg-[#1d1016] border border-[#FF0000] text-[#FF1A1A] font-black text-[11px] shadow-[0_0_8px_rgba(255,0,0,0.3)]">
+            <span className="px-2 py-0.5 rounded-md bg-[#0d2223] border border-[#359FA0] text-[#359FA0] font-black text-[11px] shadow-[0_0_8px_rgba(53,159,160,0.3)]">
               {settings.keywordsMin} - {settings.keywordsMax}
             </span>
           </div>
@@ -244,7 +280,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         keywordsMin: Math.max(10, settings.keywordsMin - 1),
                       })
                     }
-                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#FF0000] text-white flex items-center justify-center cursor-pointer text-[10px]"
+                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#359FA0] text-white flex items-center justify-center cursor-pointer text-[10px]"
                     title="Decrease Min"
                   >
                     <Minus className="w-2.5 h-2.5" />
@@ -256,7 +292,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         keywordsMin: Math.min(settings.keywordsMax, settings.keywordsMin + 1),
                       })
                     }
-                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#FF0000] text-white flex items-center justify-center cursor-pointer text-[10px]"
+                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#359FA0] text-white flex items-center justify-center cursor-pointer text-[10px]"
                     title="Increase Min"
                   >
                     <Plus className="w-2.5 h-2.5" />
@@ -290,7 +326,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         keywordsMax: Math.max(settings.keywordsMin, settings.keywordsMax - 1),
                       })
                     }
-                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#FF0000] text-white flex items-center justify-center cursor-pointer text-[10px]"
+                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#359FA0] text-white flex items-center justify-center cursor-pointer text-[10px]"
                     title="Decrease Max"
                   >
                     <Minus className="w-2.5 h-2.5" />
@@ -302,7 +338,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         keywordsMax: Math.min(50, settings.keywordsMax + 1),
                       })
                     }
-                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#FF0000] text-white flex items-center justify-center cursor-pointer text-[10px]"
+                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#359FA0] text-white flex items-center justify-center cursor-pointer text-[10px]"
                     title="Increase Max"
                   >
                     <Plus className="w-2.5 h-2.5" />
@@ -332,7 +368,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="text-white font-black flex items-center gap-1.5">
               Description
             </span>
-            <span className="px-2 py-0.5 rounded-md bg-[#1d1016] border border-[#FF0000] text-[#FF1A1A] font-black text-[11px] shadow-[0_0_8px_rgba(255,0,0,0.3)]">
+            <span className="px-2 py-0.5 rounded-md bg-[#0d2223] border border-[#359FA0] text-[#359FA0] font-black text-[11px] shadow-[0_0_8px_rgba(53,159,160,0.3)]">
               {settings.descriptionMin} - {settings.descriptionMax}
             </span>
           </div>
@@ -350,7 +386,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         descriptionMin: Math.max(50, settings.descriptionMin - 10),
                       })
                     }
-                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#FF0000] text-white flex items-center justify-center cursor-pointer text-[10px]"
+                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#359FA0] text-white flex items-center justify-center cursor-pointer text-[10px]"
                     title="Decrease Min"
                   >
                     <Minus className="w-2.5 h-2.5" />
@@ -362,7 +398,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         descriptionMin: Math.min(settings.descriptionMax, settings.descriptionMin + 10),
                       })
                     }
-                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#FF0000] text-white flex items-center justify-center cursor-pointer text-[10px]"
+                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#359FA0] text-white flex items-center justify-center cursor-pointer text-[10px]"
                     title="Increase Min"
                   >
                     <Plus className="w-2.5 h-2.5" />
@@ -396,7 +432,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         descriptionMax: Math.max(settings.descriptionMin, settings.descriptionMax - 10),
                       })
                     }
-                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#FF0000] text-white flex items-center justify-center cursor-pointer text-[10px]"
+                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#359FA0] text-white flex items-center justify-center cursor-pointer text-[10px]"
                     title="Decrease Max"
                   >
                     <Minus className="w-2.5 h-2.5" />
@@ -408,7 +444,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         descriptionMax: Math.min(500, settings.descriptionMax + 10),
                       })
                     }
-                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#FF0000] text-white flex items-center justify-center cursor-pointer text-[10px]"
+                    className="w-4 h-4 rounded bg-[#162032] border border-[#304160] hover:border-[#359FA0] text-white flex items-center justify-center cursor-pointer text-[10px]"
                     title="Increase Max"
                   >
                     <Plus className="w-2.5 h-2.5" />
@@ -443,7 +479,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             value={settings.customPrompt}
             onChange={(e) => onUpdateSettings({ customPrompt: e.target.value })}
             placeholder="e.g. Focus on commercial minimalism..."
-            className="w-full bg-[#0b0f17] border-2 border-[#283854] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-400 font-bold focus:outline-hidden focus:border-[#FF0000] focus:shadow-[0_0_10px_rgba(255,0,0,0.35)] resize-none"
+            className="w-full bg-[#0b0f17] border-2 border-[#283854] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-400 font-bold focus:outline-hidden focus:border-[#359FA0] focus:shadow-[0_0_10px_rgba(53,159,160,0.35)] resize-none"
           />
         </div>
       </div>
@@ -457,12 +493,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }
           className={`rounded-2xl p-3 flex items-center justify-between transition-all cursor-pointer ${
             settings.transparentBackground
-              ? 'bg-[#181119] border-2 border-[#FF0000] shadow-[0_0_12px_rgba(255,0,0,0.3)]'
+              ? 'bg-[#0d2223] border-2 border-[#359FA0] shadow-[0_0_12px_rgba(53,159,160,0.3)]'
               : 'bg-[#101522] border-2 border-[#283854] hover:border-slate-400'
           }`}
         >
           <div className="flex items-center gap-2 text-xs font-black text-white">
-            <Droplets className="w-4 h-4 text-[#FF1A1A]" />
+            <Droplets className="w-4 h-4 text-[#359FA0]" />
             <span>Transparent Background</span>
             <span title="Optimizes metadata for PNG/cutouts">
               <Info className="w-3.5 h-3.5 text-slate-400 hover:text-white" />
@@ -472,7 +508,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div
               className={`w-9 h-5 rounded-full p-0.5 border-1.5 transition-colors flex items-center ${
                 settings.transparentBackground
-                  ? 'bg-[#FF0000] border-[#FF4D4D]'
+                  ? 'bg-[#359FA0] border-[#42B4B5]'
                   : 'bg-[#1b2436] border-[#31415f]'
               }`}
             >
@@ -493,12 +529,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => onUpdateSettings({ silhouette: !settings.silhouette })}
           className={`rounded-2xl p-3 flex items-center justify-between transition-all cursor-pointer ${
             settings.silhouette
-              ? 'bg-[#181119] border-2 border-[#FF0000] shadow-[0_0_12px_rgba(255,0,0,0.3)]'
+              ? 'bg-[#0d2223] border-2 border-[#359FA0] shadow-[0_0_12px_rgba(53,159,160,0.3)]'
               : 'bg-[#101522] border-2 border-[#283854] hover:border-slate-400'
           }`}
         >
           <div className="flex items-center gap-2 text-xs font-black text-white">
-            <Contrast className="w-4 h-4 text-[#FF1A1A]" />
+            <Contrast className="w-4 h-4 text-[#359FA0]" />
             <span>Silhouette</span>
             <span title="Tags shadow, outline and silhouette aesthetics">
               <Info className="w-3.5 h-3.5 text-slate-400 hover:text-white" />
@@ -508,7 +544,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div
               className={`w-9 h-5 rounded-full p-0.5 border-1.5 transition-colors flex items-center ${
                 settings.silhouette
-                  ? 'bg-[#FF0000] border-[#FF4D4D]'
+                  ? 'bg-[#359FA0] border-[#42B4B5]'
                   : 'bg-[#1b2436] border-[#31415f]'
               }`}
             >
@@ -531,19 +567,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
           }
           className={`rounded-2xl p-3 flex items-center justify-between transition-all cursor-pointer ${
             settings.singleWordKeywords
-              ? 'bg-[#181119] border-2 border-[#FF0000] shadow-[0_0_12px_rgba(255,0,0,0.3)]'
+              ? 'bg-[#0d2223] border-2 border-[#359FA0] shadow-[0_0_12px_rgba(53,159,160,0.3)]'
               : 'bg-[#101522] border-2 border-[#283854] hover:border-slate-400'
           }`}
         >
           <div className="flex items-center gap-2 text-xs font-black text-white">
-            <TypeIcon className="w-4 h-4 text-[#FF1A1A]" />
+            <TypeIcon className="w-4 h-4 text-[#359FA0]" />
             <span>Single-Word Keywords</span>
           </div>
           <div className="flex items-center gap-2">
             <div
               className={`w-9 h-5 rounded-full p-0.5 border-1.5 transition-colors flex items-center ${
                 settings.singleWordKeywords
-                  ? 'bg-[#FF0000] border-[#FF4D4D]'
+                  ? 'bg-[#359FA0] border-[#42B4B5]'
                   : 'bg-[#1b2436] border-[#31415f]'
               }`}
             >
@@ -564,9 +600,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <button
         type="button"
         onClick={onOpenHelp}
-        className="w-full flex items-center justify-center gap-2 py-3 px-3 rounded-2xl text-xs font-black text-white bg-[#101522] hover:bg-[#161e30] border-2 border-[#283854] hover:border-[#FF0000] transition-all cursor-pointer shadow-md mt-auto"
+        className="w-full flex items-center justify-center gap-2 py-3 px-3 rounded-2xl text-xs font-black text-white bg-[#101522] hover:bg-[#161e30] border-2 border-[#283854] hover:border-[#359FA0] transition-all cursor-pointer shadow-md mt-auto"
       >
-        <HelpCircle className="w-4 h-4 text-[#FF1A1A]" />
+        <HelpCircle className="w-4 h-4 text-[#359FA0]" />
         <span>Help & Tutorial Guide</span>
       </button>
     </aside>

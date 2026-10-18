@@ -46,12 +46,12 @@ export const GoogleLoginModal: React.FC<GoogleLoginModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-4 select-none">
-      <div className="bg-[#101522] border-2 border-[#FF0000]/60 rounded-2xl max-w-md w-full p-6 text-white shadow-[0_0_35px_rgba(255,0,0,0.3)] flex flex-col">
+      <div className="bg-[#101522] border-2 border-[#359FA0]/60 rounded-2xl max-w-md w-full p-6 text-white shadow-[0_0_35px_rgba(53,159,160,0.3)] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[#1e273a] mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#1a1218] border border-[#FF0000] flex items-center justify-center text-[#FF1A1A]">
-              <Mail className="w-5 h-5 text-[#FF1A1A]" />
+            <div className="w-9 h-9 rounded-xl bg-[#0d2223] border border-[#359FA0] flex items-center justify-center text-[#359FA0]">
+              <Mail className="w-5 h-5 text-[#359FA0]" />
             </div>
             <div>
               <h3 className="text-base font-black text-white">Gmail / Google Sign In</h3>
@@ -77,14 +77,14 @@ export const GoogleLoginModal: React.FC<GoogleLoginModalProps> = ({
                 <img
                   src={user.avatarUrl}
                   alt={user.name}
-                  className="w-12 h-12 rounded-full border-2 border-[#FF0000] bg-slate-800 p-0.5"
+                  className="w-12 h-12 rounded-full border-2 border-[#359FA0] bg-slate-800 p-0.5"
                 />
                 <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#0b0f17]" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-black text-white">{user.name}</h4>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#FF0000] text-white">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#359FA0] text-white">
                     PRO CONTRIBUTOR
                   </span>
                 </div>
@@ -106,7 +106,7 @@ export const GoogleLoginModal: React.FC<GoogleLoginModalProps> = ({
               <button
                 type="button"
                 onClick={onLogout}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#221016] hover:bg-[#331420] text-[#FF4D4D] text-xs font-bold rounded-xl cursor-pointer border border-[#FF0000]/40 transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-bold rounded-xl cursor-pointer border border-rose-500/40 transition-colors"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sign Out</span>
@@ -115,7 +115,7 @@ export const GoogleLoginModal: React.FC<GoogleLoginModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2 btn-red-gradient text-white text-xs font-black rounded-xl cursor-pointer"
+                className="px-5 py-2 btn-teal-gradient text-white text-xs font-black rounded-xl cursor-pointer"
               >
                 Done
               </button>
@@ -177,7 +177,7 @@ export const GoogleLoginModal: React.FC<GoogleLoginModalProps> = ({
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
                   placeholder="yourname@gmail.com"
-                  className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white focus:border-[#FF0000] focus:outline-hidden font-bold"
+                  className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white focus:border-[#359FA0] focus:outline-hidden font-bold"
                 />
               </div>
 
@@ -188,7 +188,7 @@ export const GoogleLoginModal: React.FC<GoogleLoginModalProps> = ({
                   value={nameInput}
                   onChange={(e) => setNameInput(e.target.value)}
                   placeholder="Shamim Reza"
-                  className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white focus:border-[#FF0000] focus:outline-hidden font-bold"
+                  className="w-full bg-[#0b0f17] border border-[#1e273a] rounded-lg px-3 py-2 text-white focus:border-[#359FA0] focus:outline-hidden font-bold"
                 />
               </div>
             </div>
@@ -204,7 +204,7 @@ export const GoogleLoginModal: React.FC<GoogleLoginModalProps> = ({
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="px-5 py-2 btn-red-gradient text-white text-xs font-black rounded-xl cursor-pointer shadow-[0_0_12px_rgba(255,0,0,0.4)]"
+                className="px-5 py-2 btn-teal-gradient text-white text-xs font-black rounded-xl cursor-pointer shadow-[0_0_12px_rgba(53,159,160,0.4)]"
               >
                 Sign In with Gmail
               </button>
