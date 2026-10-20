@@ -192,6 +192,50 @@ function buildXmpApp1Segment(title: string, description: string, keywords: strin
  * Embeds EXIF (Windows XP tags + 5-Star Rating), IPTC IIM (8BIM), and XMP metadata into a JPEG buffer
  * Guaranteed to be visible in Windows Explorer Details tab (5 Stars Rating), Adobe Photoshop, Bridge, Lightroom, and Microstock Portals!
  */
+function stripConflictingAppSegments(buf: Uint8Array): Uint8Array {
+  if (buf.length < 4 || buf[0] !== 0xff || buf[1] !== 0xd8) return buf;
+  let pos = 2;
+  const kept: Uint8Array[] = [buf.subarray(0, 2)];
+  while (pos < buf.length - 1) {
+    if (buf[pos] !== 0xff) break;
+    const marker = buf[pos + 1];
+    if (marker === 0xda || marker === 0xd9) {
+      kept.push(buf.subarray(pos));
+      break;
+    }
+    if (marker === 0x00 || (marker >= 0xd0 && marker <= 0xd7)) {
+      pos += 2;
+      continue;
+    }
+    const len = (buf[pos + 2] << 8) | buf[pos + 3];
+    const segEnd = pos + 2 + len;
+    if (marker === 0xed) {
+      // Strip old Photoshop APP13
+      pos = segEnd;
+      continue;
+    }
+    if (marker === 0xe1) {
+      const headerBytes = buf.subarray(pos + 4, Math.min(pos + 34, segEnd));
+      const str = String.fromCharCode(...headerBytes);
+      if (str.startsWith('http://ns.adobe.com/xap/1.0/')) {
+        // Strip old XMP APP1
+        pos = segEnd;
+        continue;
+      }
+    }
+    kept.push(buf.subarray(pos, segEnd));
+    pos = segEnd;
+  }
+  const total = kept.reduce((acc, k) => acc + k.length, 0);
+  const res = new Uint8Array(total);
+  let off = 0;
+  for (const k of kept) {
+    res.set(k, off);
+    off += k.length;
+  }
+  return res;
+}
+
 export function embedMetadataInJpeg(
   jpegBytes: Uint8Array,
   title: string,
@@ -229,15 +273,18 @@ export function embedMetadataInJpeg(
     GPS: {},
   };
 
+  // Strip old conflicting XMP and Photoshop APP13 segments first
+  const cleanJpeg = stripConflictingAppSegments(jpegBytes);
+
   let withExifBytes: Uint8Array;
   try {
     const dumpedStr = piexif.dump(exifObj);
-    const jpegStr = toBinaryString(jpegBytes);
+    const jpegStr = toBinaryString(cleanJpeg);
     const insertedStr = piexif.insert(dumpedStr, jpegStr);
     withExifBytes = binaryStringToUint8(insertedStr);
   } catch (exifErr) {
     console.warn('piexif.insert fallback:', exifErr);
-    withExifBytes = jpegBytes;
+    withExifBytes = cleanJpeg;
   }
 
   // 2. Insert XMP (APP1) and Photoshop IPTC (APP13) right after the EXIF APP1 segment

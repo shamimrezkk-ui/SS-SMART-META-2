@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { ImageItem, PlatformType } from '../types';
 import { buildCsvString, downloadCsvFile } from '../utils/csvExporter';
-import { embedDirectlyIntoItem, downloadEmbeddedImage } from '../utils/metadataEmbedder';
+import { embedDirectlyIntoItem, downloadEmbeddedImage, embedMetadataInBytes } from '../utils/metadataEmbedder';
 import { titleToFilename } from '../utils/filenameHelper';
 import { FullPreviewModal } from './FullPreviewModal';
 
@@ -109,6 +109,54 @@ export const MetadataCard: React.FC<MetadataCardProps> = React.memo(
           }
         } catch (err: any) {
           setEmbedToast(`Embed error: ${err?.message || 'Failed'}`);
+        } finally {
+          setIsEmbeddingSingle(false);
+          setTimeout(() => setEmbedToast(null), 3500);
+        }
+      } else if (typeof (window as any).showSaveFilePicker === 'function') {
+        setIsEmbeddingSingle(true);
+        try {
+          const targetName = titleToFilename(item.title || item.name, item.name);
+          const ext = targetName.split('.').pop()?.toLowerCase() || 'jpg';
+          const mime = item.format === 'PNG' ? 'image/png' : item.format === 'EPS' ? 'application/postscript' : 'image/jpeg';
+          const handle = await (window as any).showSaveFilePicker({
+            suggestedName: targetName,
+            types: [
+              {
+                description: `${item.format} Stock Asset`,
+                accept: { [mime]: [`.${ext}`] },
+              },
+            ],
+          });
+          let sourceBuffer: ArrayBuffer;
+          if (item.originalFile) {
+            sourceBuffer = await item.originalFile.arrayBuffer();
+          } else {
+            const res = await fetch(item.previewUrl);
+            sourceBuffer = await res.arrayBuffer();
+          }
+          const uint8 = new Uint8Array(sourceBuffer);
+          const embeddedBytes = embedMetadataInBytes(
+            uint8,
+            item.title || item.name,
+            item.description || item.title || '',
+            item.keywords || []
+          );
+          const writable = await handle.createWritable();
+          await writable.write(new Blob([embeddedBytes.buffer as ArrayBuffer]));
+          await writable.close();
+
+          const finalName = handle.name || targetName;
+          onUpdateItem(item.id, {
+            name: finalName,
+            originalName: finalName,
+            fileHandle: handle,
+          });
+          setEmbedToast(`Saved in-place as "${finalName}" with 5★ Rating and metadata embedded!`);
+        } catch (pickerErr: any) {
+          if (pickerErr?.name !== 'AbortError') {
+            if (onOpenEmbedModal) onOpenEmbedModal();
+          }
         } finally {
           setIsEmbeddingSingle(false);
           setTimeout(() => setEmbedToast(null), 3500);

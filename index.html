@@ -9,6 +9,45 @@
     <meta property="og:description" content="SS SMART META 2: Professional stock media metadata and reverse image-to-prompt generator with sequential batch processing." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function () {
+        var isWsErr = function (msg, file, stack) {
+          var str = ((msg || '') + ' ' + (file || '') + ' ' + (stack || '')).toLowerCase();
+          return (
+            str.indexOf('websocket') !== -1 ||
+            str.indexOf('@vite/client') !== -1 ||
+            str.indexOf('createwebsocketmodulerunnertransport') !== -1
+          );
+        };
+        window.addEventListener(
+          'error',
+          function (e) {
+            var msg = (e && (e.message || (e.error && e.error.message))) || '';
+            var file = (e && e.filename) || '';
+            var stack = (e && e.error && e.error.stack) || '';
+            if (isWsErr(msg, file, stack)) {
+              if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+              if (e.preventDefault) e.preventDefault();
+              return true;
+            }
+          },
+          true
+        );
+        window.addEventListener(
+          'unhandledrejection',
+          function (e) {
+            var r = e && e.reason;
+            var msg = (r && (r.message || r)) || '';
+            var stack = (r && r.stack) || '';
+            if (isWsErr(msg, '', stack)) {
+              if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+              if (e.preventDefault) e.preventDefault();
+            }
+          },
+          true
+        );
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

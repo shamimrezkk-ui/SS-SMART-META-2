@@ -345,7 +345,7 @@ app.post('/api/gemini/test', async (req: Request, res: Response) => {
 
     let success = false;
     let lastError = '';
-    const TEST_MODELS = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-3.8-flash'];
+    const TEST_MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
 
     for (const model of TEST_MODELS) {
       try {
@@ -359,7 +359,7 @@ app.post('/api/gemini/test', async (req: Request, res: Response) => {
             },
           }),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`Timeout with ${model}`)), 8000)
+            setTimeout(() => reject(new Error(`Timeout with ${model}`)), 5000)
           ),
         ]);
 
@@ -503,9 +503,10 @@ REQUIREMENTS:
       let lastErr: any = null;
       const defaultModels = [
         'gemini-3.8-flash',
-        'gemini-3.1-flash-lite',
-        'gemini-2.5-flash-lite',
         'gemini-flash-latest',
+        'gemini-3.1-flash-lite',
+        'gemini-2.5-flash',
+        'gemini-2.0-flash',
       ];
       const CANDIDATE_MODELS = selectedModel
         ? Array.from(new Set([selectedModel, ...defaultModels]))
@@ -533,7 +534,7 @@ REQUIREMENTS:
               },
             }),
             new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error(`Timeout with ${modelName}`)), 12000)
+              setTimeout(() => reject(new Error(`Timeout with ${modelName}`)), 22000)
             ),
           ]);
 
@@ -712,7 +713,7 @@ async function startServer() {
   if (!isProduction) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true, port: PORT, host: '0.0.0.0' },
+      server: { middlewareMode: true, hmr: false, port: PORT, host: '0.0.0.0' },
       appType: 'spa',
     });
     app.use(vite.middlewares as any);
